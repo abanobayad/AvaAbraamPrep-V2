@@ -31,8 +31,7 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "@prisma/adapter-d1": "5.22.0",
-    "@cloudflare/next-on-pages": "^1.13.16",
-    "wrangler": "^3.109.0"
+    "@cloudflare/next-on-pages": "^1.13.16"
   },
   "devDependencies": {
     "@types/node": "^20",
