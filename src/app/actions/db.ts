@@ -1,12 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma"
+import { getPrisma } from "@/lib/prisma";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
 
 
 import { revalidatePath } from "next/cache";
 
 export async function getStudents(studentClass?: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.student.findMany({
     where: studentClass && studentClass !== "الكل" ? { studentClass } : undefined,
@@ -15,11 +18,15 @@ export async function getStudents(studentClass?: string) {
 }
 
 export async function getStudentById(id: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.student.findUnique({ where: { id } });
 }
 
 export async function addStudent(data: { name: string; studentClass: string; phone?: string; address?: string; notes?: string }) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   if (!/^[\u0600-\u06FF\s]+$/.test(data.name) && data.name !== "Beshoy Student") {
     throw new Error("الاسم يجب أن يحتوي على حروف عربية فقط");
@@ -51,6 +58,8 @@ export async function addStudent(data: { name: string; studentClass: string; pho
 }
 
 export async function getKhodam() {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.khadem.findMany({
     where: { role: { not: 'student' } }
@@ -58,6 +67,8 @@ export async function getKhodam() {
 }
 
 export async function addKhadem(data: any) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   const khadem = await prisma.khadem.create({
     data: {
@@ -73,12 +84,16 @@ export async function addKhadem(data: any) {
 }
 
 export async function deleteKhadem(id: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   await prisma.khadem.delete({ where: { id } });
   revalidatePath("/manage-khodam");
 }
 
 export async function awardPoints(studentId: string, points: number, actionName: string, addedBy: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   // Use Prisma Transaction
   const [transaction, student] = await prisma.$transaction([
@@ -106,6 +121,8 @@ export async function awardPoints(studentId: string, points: number, actionName:
 }
 
 export async function getStudentHistory(studentId: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.transaction.findMany({
     where: { studentId },
@@ -114,6 +131,8 @@ export async function getStudentHistory(studentId: string) {
 }
 
 export async function updateStudent(id: string, data: { name: string; studentClass: string; phone?: string; address?: string; notes?: string }) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   if (!/^[\u0600-\u06FF\s]+$/.test(data.name) && data.name !== "Beshoy Student") {
     throw new Error("????? ??? ?? ????? ??? ???? ????? ???");
@@ -134,6 +153,8 @@ export async function updateStudent(id: string, data: { name: string; studentCla
 }
 
 export async function getMedia() {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.media.findMany({
     orderBy: { createdAt: 'desc' }
@@ -141,6 +162,8 @@ export async function getMedia() {
 }
 
 export async function addMedia(data: { title: string; url: string; type: string }) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   const media = await prisma.media.create({
     data: {
@@ -155,6 +178,8 @@ export async function addMedia(data: { title: string; url: string; type: string 
 
 
 export async function saveAttendance(date: Date, records: { studentId: string; status: boolean }[], recordedBy: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   // Normalize the date to avoid duplicate entries for the same day (ignoring time)
   const normalizedDate = new Date(date);
@@ -210,6 +235,8 @@ export async function saveAttendance(date: Date, records: { studentId: string; s
 }
 
 export async function getEfteqadStudents() {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.student.findMany({
     where: { needsEfteqad: true },
@@ -220,6 +247,8 @@ export async function getEfteqadStudents() {
 
 
 export async function logEfteqad(studentId: string, khademName: string, notes?: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.$transaction(async (tx) => {
     const log = await tx.efteqadLog.create({
@@ -243,6 +272,8 @@ export async function logEfteqad(studentId: string, khademName: string, notes?: 
 }
 
 export async function getEfteqadHistory(studentId: string) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   
   return await prisma.efteqadLog.findMany({
     where: { studentId },

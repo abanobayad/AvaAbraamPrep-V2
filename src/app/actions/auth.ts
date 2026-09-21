@@ -4,10 +4,13 @@
 import { cookies } from "next/headers"
 import { createToken } from "@/services/auth"
 import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { getPrisma } from "@/lib/prisma";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
 
 export async function handleLogin(formData: FormData) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   const username = formData.get("username") as string
   const password = formData.get("password") as string
 
@@ -50,11 +53,15 @@ export async function handleLogin(formData: FormData) {
 }
 
 export async function handleLogout() {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   cookies().delete("auth_token")
   redirect("/")
 }
 
 export async function loginStudent(formData: FormData) {
+  const prisma = getPrisma(getRequestContext().env as any);
+
   const code = formData.get('code') as string;
   if (!code) return { error: 'برجاء إدخال الكود' };
 
