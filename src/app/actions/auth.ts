@@ -1,11 +1,11 @@
 "use server"
-export const runtime = 'edge';
+
 
 import { cookies } from "next/headers"
 import { createToken } from "@/services/auth"
 import { redirect } from "next/navigation"
-import { getPrisma } from "@/lib/prisma"
-import { getRequestContext } from "@cloudflare/next-on-pages"
+import { prisma } from "@/lib/prisma"
+
 
 export async function handleLogin(formData: FormData) {
   const username = formData.get("username") as string
@@ -15,7 +15,7 @@ export async function handleLogin(formData: FormData) {
     return { error: "الرجاء إدخال اسم المستخدم وكلمة المرور" }
   }
 
-  const prisma = getPrisma(getRequestContext().env as any);
+  
 
   // Use Prisma for auth
   const user = await prisma.khadem.findUnique({
@@ -58,7 +58,7 @@ export async function loginStudent(formData: FormData) {
   const code = formData.get('code') as string;
   if (!code) return { error: 'برجاء إدخال الكود' };
 
-  const prisma = getPrisma(getRequestContext().env as any);
+  
 
   const student = await prisma.student.findUnique({
     where: { studentCode: code }
