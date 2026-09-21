@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Khadem {
+  id        String   @id @default(cuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      String   // 'superadmin' | 'admin' | 'student'
+  createdAt DateTime @default(now())
+}
+
+model Student {
+  id           String        @id @default(cuid())
+  name         String
+  studentCode  String?       @unique
+  studentClass String
+  phone        String?
+  address      String?
+  notes        String?
+  totalPoints  Int           @default(0)
+  needsEfteqad Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  attendances  Attendance[]
+  efteqadLogs  EfteqadLog[]
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id])
+  actionName    String
+  pointsChanged Int
+  addedBy       String
+  timestamp     DateTime @default(now())
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  type      String   // 'video', 'document', 'image', 'link'
+  createdAt DateTime @default(now())
+}
+
+
+model Attendance {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id])
+  date       DateTime
+  status     Boolean  // true = present, false = absent
+  recordedBy String
+  createdAt  DateTime @default(now())
+}
+
+model EfteqadLog {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id])
+  date       DateTime @default(now())
+  khademName String
+  notes      String?
+}
+

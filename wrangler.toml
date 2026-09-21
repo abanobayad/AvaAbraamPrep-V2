@@ -1,0 +1,9 @@
+name = "student-attendance-system"
+compatibility_date = "2024-03-20"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "attendance-db"
+database_id = "8fe1b897-2481-41a1-8865-102e2baf4ceb" # Example ID, replace with actual
