@@ -15,7 +15,21 @@ export default async function PointsLeaderboardPage() {
     redirect("/");
   }
 
-  const students = await getStudents();
+  let students = [];
+  try {
+    const rawStudents = await getStudents();
+    students = JSON.parse(JSON.stringify(rawStudents));
+  } catch (error: any) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-8 pt-6">
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <p>حدث خطأ في جلب بيانات الطلاب.</p>
+          <pre className="text-sm mt-2">{error.message}</pre>
+        </div>
+      </div>
+    );
+  }
+  
   const backHref = session.role === "superadmin" ? "/superadmin-dashboard" : "/admin-dashboard";
 
   return (

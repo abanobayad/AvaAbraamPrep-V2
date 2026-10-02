@@ -12,7 +12,20 @@ export default async function EfteqadPage() {
     redirect("/");
   }
 
-  const students = await getEfteqadStudents();
+  let students = [];
+  try {
+    const rawStudents = await getEfteqadStudents();
+    students = JSON.parse(JSON.stringify(rawStudents));
+  } catch (error: any) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-8 pb-12">
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <p>حدث خطأ في جلب بيانات الافتقاد.</p>
+          <pre className="text-sm mt-2">{error.message}</pre>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">

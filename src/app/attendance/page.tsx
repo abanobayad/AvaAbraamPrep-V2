@@ -12,7 +12,20 @@ export default async function AttendancePage() {
     redirect("/");
   }
 
-  const students = await getStudents();
+  let students = [];
+  try {
+    const rawStudents = await getStudents();
+    students = JSON.parse(JSON.stringify(rawStudents));
+  } catch (error: any) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 pb-12">
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <p>حدث خطأ في جلب بيانات الطلاب.</p>
+          <pre className="text-sm mt-2">{error.message}</pre>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">

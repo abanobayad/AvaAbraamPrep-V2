@@ -10,10 +10,28 @@ import { StudentPortalClient } from "@/components/features/StudentPortalClient";
 export default async function StudentPortal() {
   const token = cookies().get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
-  const student = session ? await getStudentById(session.id) : null;
   
-  const allStudents = await getStudents();
-  const sortedStudents = [...allStudents].sort((a, b) => b.totalPoints - a.totalPoints);
+  let student = null;
+  let allStudents = [];
+  try {
+    if (session) {
+      const rawStudent = await getStudentById(session.id);
+      student = JSON.parse(JSON.stringify(rawStudent));
+    }
+    const rawAll = await getStudents();
+    allStudents = JSON.parse(JSON.stringify(rawAll));
+  } catch (error: any) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-12 pt-6">
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <p>حدث خطأ في جلب بياناتك.</p>
+          <pre className="text-sm mt-2">{error.message}</pre>
+        </div>
+      </div>
+    );
+  }
+  
+  const sortedStudents = [...allStudents].sort((a: any, b: any) => b.totalPoints - a.totalPoints);
 
   return (
     <div className="max-w-5xl mx-auto space-y-12 pt-6">
@@ -34,7 +52,7 @@ export default async function StudentPortal() {
       <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-primary/20 shadow-sm relative overflow-hidden">
         {/* Make points clickable in hero as well to open modal if we wanted, but we'll stick to leaderboard */}
         <div className="z-10">
-          <h2 className="text-2xl font-bold">أهلاً يا {student?.name || session?.username} 👋</h2>
+          <h2 className="text-2xl font-bold">أهلاً بك يا {student?.name || session?.username} 👋</h2>
           <p className="text-muted-foreground mt-2">
             آخر تحديث للنقاط: {student?.updatedAt ? new Date(student.updatedAt).toLocaleDateString('ar-EG') : "لم يتم التحديث"}
           </p>

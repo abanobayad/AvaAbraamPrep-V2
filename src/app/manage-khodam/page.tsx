@@ -15,7 +15,20 @@ export default async function ManageKhodamPage() {
     redirect("/");
   }
 
-  const khodam = await getKhodam();
+  let khodam = [];
+  try {
+    const rawKhodam = await getKhodam();
+    khodam = JSON.parse(JSON.stringify(rawKhodam));
+  } catch (error: any) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-8 pt-6">
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <p>حدث خطأ في جلب بيانات الخدام. يرجى التأكد من أن الجداول موجودة في قاعدة البيانات.</p>
+          <pre className="text-sm mt-2">{error.message}</pre>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pt-6">

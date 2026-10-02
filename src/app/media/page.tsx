@@ -15,7 +15,20 @@ export default async function MediaPage() {
     redirect("/");
   }
 
-  const mediaList = await getMedia();
+  let mediaList = [];
+  try {
+    const rawMedia = await getMedia();
+    mediaList = JSON.parse(JSON.stringify(rawMedia));
+  } catch (error: any) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-8 pt-6">
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          <p>حدث خطأ في جلب الميديا.</p>
+          <pre className="text-sm mt-2">{error.message}</pre>
+        </div>
+      </div>
+    );
+  }
   
   let backHref = "/student-portal";
   if (session.role === "superadmin") backHref = "/superadmin-dashboard";
