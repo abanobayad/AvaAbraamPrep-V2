@@ -21,11 +21,12 @@ export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newKhadem = await addKhadem(formData) as any;
-      if (!newKhadem || newKhadem.error) {
-        throw new Error(newKhadem?.error || '500 Internal Server Error (Database might be uninitialized)');
+      const response = await addKhadem(formData) as any;
+      if (!response || response.error) {
+        throw new Error(response?.error || '500 Internal Server Error (Database connection issue)');
       }
-      if (!newKhadem.name) {
+      const newKhadem = response.data;
+      if (!newKhadem || !newKhadem.name) {
         throw new Error('Invalid data returned');
       }
       setKhodam([...khodam, newKhadem]);

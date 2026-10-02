@@ -39,7 +39,10 @@ export function AddStudentForm() {
 
     setLoading(true)
     try {
-      await addStudent(formData)
+      const response = await addStudent(formData) as any;
+      if (!response || response.error) {
+        throw new Error(response?.error || "حدث خطأ في قاعدة البيانات (500)");
+      }
       toast({ variant: "default", className: "bg-success text-white", title: "تم بنجاح", description: "تمت إضافة المخدوم بنجاح" })
       setFormData({ name: "", studentClass: "", phone: "", address: "", notes: "" })
       // Fire custom event to refresh list
