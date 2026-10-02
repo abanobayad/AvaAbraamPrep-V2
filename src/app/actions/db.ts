@@ -6,15 +6,17 @@ import { revalidatePath } from "next/cache";
 
 export async function getStudents(studentClass?: string) {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.student.findMany({
+  const result = await prisma.student.findMany({
     where: studentClass && studentClass !== "الكل" ? { studentClass } : undefined,
     orderBy: { totalPoints: 'desc' }
   });
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function getStudentById(id: string) {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.student.findUnique({ where: { id } });
+  const result = await prisma.student.findUnique({ where: { id } });
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function addStudent(data: { name: string; studentClass: string; phone?: string; address?: string; notes?: string }) {
@@ -61,9 +63,10 @@ export async function addStudent(data: { name: string; studentClass: string; pho
 
 export async function getKhodam() {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.khadem.findMany({
+  const result = await prisma.khadem.findMany({
     where: { role: { not: 'student' } }
   });
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function addKhadem(data: any) {
@@ -123,10 +126,11 @@ export async function awardPoints(studentId: string, points: number, actionName:
 
 export async function getStudentHistory(studentId: string) {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.transaction.findMany({
+  const result = await prisma.transaction.findMany({
     where: { studentId },
     orderBy: { timestamp: 'desc' }
   });
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function updateStudent(id: string, data: { name: string; studentClass: string; phone?: string; address?: string; notes?: string }) {
@@ -149,9 +153,10 @@ export async function updateStudent(id: string, data: { name: string; studentCla
 
 export async function getMedia() {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.media.findMany({
+  const result = await prisma.media.findMany({
     orderBy: { createdAt: 'desc' }
   });
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function addMedia(data: { title: string; url: string; type: string }) {
@@ -204,10 +209,11 @@ export async function saveAttendance(date: Date, records: { studentId: string; s
 
 export async function getEfteqadStudents() {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.student.findMany({
+  const result = await prisma.student.findMany({
     where: { needsEfteqad: true },
     orderBy: { name: 'asc' }
   });
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function logEfteqad(studentId: string, khademName: string, notes?: string) {
@@ -232,8 +238,9 @@ export async function logEfteqad(studentId: string, khademName: string, notes?: 
 
 export async function getEfteqadHistory(studentId: string) {
   const prisma = getPrisma(getRequestContext().env as any);
-  return await prisma.efteqadLog.findMany({
+  const result = await prisma.efteqadLog.findMany({
     where: { studentId },
     orderBy: { date: 'desc' }
   });
+  return JSON.parse(JSON.stringify(result));
 }
