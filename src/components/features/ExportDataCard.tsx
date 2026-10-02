@@ -24,7 +24,7 @@ export function ExportDataCard() {
 
       const headers = ["الاسم", "الفصل", "رقم الموبايل", "العنوان", "الملاحظات"]
       const csvRows = [headers.join(",")]
-      students.forEach(s => {
+      students.forEach((s: any) => {
         const row = [
           `"${s.name}"`,
           `"${s.studentClass}"`,
