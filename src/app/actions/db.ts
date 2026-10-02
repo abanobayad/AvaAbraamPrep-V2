@@ -67,20 +67,22 @@ export async function getKhodam() {
 }
 
 export async function addKhadem(data: any) {
-  const prisma = getPrisma(getRequestContext().env as any);
-
-  
-  const khadem = await prisma.khadem.create({
-    data: {
-      name: data.name,
-      username: data.username,
-      password: data.password, // In real world, hash this
-      role: data.role,
-    }
-  });
-  
-  revalidatePath("/manage-khodam");
-  return khadem;
+  try {
+    const prisma = getPrisma(getRequestContext().env as any);
+    const khadem = await prisma.khadem.create({
+      data: {
+        name: data.name,
+        username: data.username,
+        password: data.password,
+        role: data.role,
+      }
+    });
+    revalidatePath("/manage-khodam");
+    return khadem;
+  } catch (err: any) {
+    if (err.code === "P2002") return { error: "اسم المستخدم مسجل بالفعل. يرجى اختيار اسم آخر." };
+    return { error: err.message || "Internal Server Error" };
+  }
 }
 
 export async function deleteKhadem(id: string) {
