@@ -21,7 +21,13 @@ export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newKhadem = await addKhadem(formData);
+      const newKhadem = await addKhadem(formData) as any;
+      if (!newKhadem || newKhadem.error) {
+        throw new Error(newKhadem?.error || '500 Internal Server Error (Database might be uninitialized)');
+      }
+      if (!newKhadem.name) {
+        throw new Error('Invalid data returned');
+      }
       setKhodam([...khodam, newKhadem]);
       setIsDialogOpen(false);
       toast({ title: "تم بنجاح", description: "تم إضافة الخادم بنجاح", className: "bg-success text-white" });
