@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { cookies } from "next/headers";
 import { verifyToken } from "@/services/auth";
 import { handleLogout } from "@/app/actions/auth";

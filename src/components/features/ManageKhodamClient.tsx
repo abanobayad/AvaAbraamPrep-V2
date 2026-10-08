@@ -36,7 +36,7 @@ function ChangePasswordDialog({ khademId, khademName }: { khademId: string, khad
     setLoading(true);
     const res = await resetKhademPassword(khademId, newPass);
     setLoading(false);
-    if (res.success) {
+    if (res?.success) {
       setSuccessPass(newPass);
     } else {
       toast({ variant: "destructive", title: "خطأ", description: res.error });

@@ -25,11 +25,11 @@ export function ChangeOwnPasswordDialog() {
     setLoading(true);
     const res = await changeOwnPassword(currentPass, newPass);
     setLoading(false);
-    if (res.success) {
+    if (res?.success) {
       toast({ title: "نجاح", description: "تم تغيير كلمة السر بنجاح", className: "bg-success text-white" });
       setOpen(false);
     } else {
-      toast({ variant: "destructive", title: "خطأ", description: res.error });
+      toast({ variant: "destructive", title: "خطأ", description: res?.error });
     }
   };
 

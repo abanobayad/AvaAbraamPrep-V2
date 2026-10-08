@@ -53,8 +53,8 @@ export function StudentList({ role = "student" }: { role?: string }) {
     setDeleting(true);
     try {
       const res = await deleteStudent(deleteId);
-      if (!res.success) {
-        throw new Error(res.error);
+      if (!res?.success) {
+        throw new Error(res?.error);
       }
       setStudents(prev => prev.filter(s => s.id !== deleteId));
       toast({ title: "تم الحذف", description: "تم حذف الطالب بنجاح", className: "bg-success text-white" });

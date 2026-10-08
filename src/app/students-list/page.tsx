@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { ExportDataCard } from "@/components/features/ExportDataCard";
 import { StudentList } from "@/components/features/StudentList";
 import { Button } from "@/components/ui/button";

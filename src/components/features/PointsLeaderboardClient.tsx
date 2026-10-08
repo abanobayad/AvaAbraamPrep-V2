@@ -59,8 +59,8 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
     setLoading(true);
     try {
       const updatedStudent = await awardPoints(studentId, points, reason);
-      if (!updatedStudent.success) {
-        throw new Error(updatedStudent.error || 'Failed to award points');
+      if (!updatedStudent?.success) {
+        throw new Error(updatedStudent?.error || 'Failed to award points');
       }
       
       const finalStudent = updatedStudent.data;

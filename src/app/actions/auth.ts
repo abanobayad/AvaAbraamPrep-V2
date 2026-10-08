@@ -183,7 +183,6 @@ export async function loginStudent(formData: FormData) {
 
 import { requireRole } from "@/lib/authz";
 import { verifyToken } from "@/services/auth";
-import { revalidatePath } from "next/cache";
 
 export async function resetKhademPassword(userId: string, newPass: string) {
   try {
@@ -208,9 +207,7 @@ export async function resetKhademPassword(userId: string, newPass: string) {
       data: { password: newHash }
     });
 
-    try {
-      revalidatePath("/manage-khodam");
-    } catch(e) {}
+    
 
     return { success: true, data: null };
   } catch(e: any) {

@@ -2,7 +2,6 @@
 
 import { getPrisma } from "@/lib/prisma";
 import { getRequestContext } from "@cloudflare/next-on-pages";
-import { revalidatePath } from "next/cache";
 import { EFTEQAD_ENABLED } from "@/lib/features";
 import { requireRole } from "@/lib/authz";
 import { hashPassword } from "@/lib/password";
@@ -158,11 +157,7 @@ export async function awardPoints(studentId: string, points: number, actionName:
     const batchResults = await db.batch([insertTx, updateStudent]);
     const updatedTotal = batchResults[1].results[0].totalPoints;
 
-    try {
-      revalidatePath("/students-list");
-      revalidatePath("/points-leaderboard");
-      revalidatePath("/student-portal");
-    } catch(e) {}
+    
 
     return { 
       success: true, 
@@ -334,11 +329,7 @@ export async function deleteStudent(studentId: string) {
 
     await db.batch([delTransactions, delAttendance, delEfteqad, delStudent]);
 
-    try {
-      revalidatePath("/students-list");
-      revalidatePath("/points-leaderboard");
-      revalidatePath("/student-portal");
-    } catch(e) {}
+    
 
     return { success: true, data: null };
   } catch (err: any) {
