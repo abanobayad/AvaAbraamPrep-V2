@@ -73,8 +73,8 @@ export function ExportDataCard() {
             <SelectContent>
               <SelectItem value="الكل">الكل</SelectItem>
               <SelectItem value="أولى إعدادي">أولى إعدادي</SelectItem>
-              <SelectItem value="تانية إعدادي">تانية إعدادي</SelectItem>
-              <SelectItem value="تالتة إعدادي">تالتة إعدادي</SelectItem>
+              <SelectItem value="ثانية إعدادي">ثانية إعدادي</SelectItem>
+              <SelectItem value="ثالثة إعدادي">ثالثة إعدادي</SelectItem>
             </SelectContent>
           </Select>
         </div>
