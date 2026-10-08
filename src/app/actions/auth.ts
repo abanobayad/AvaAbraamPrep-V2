@@ -59,6 +59,25 @@ async function incrementRateLimit(keys: string[], limit: number) {
   }
 }
 
+// Global brute-force brake for student codes: past the threshold every attempt is
+// delayed instead of refused, so one attacker cannot lock all students out.
+const GLOBAL_STUDENT_THRESHOLD = 300;
+async function globalStudentDelay() {
+  try {
+    const attempt = await prisma.loginAttempt.findUnique({ where: { key: "student:all" } });
+    if (!attempt) return;
+    if (Date.now() - attempt.windowStart.getTime() > RATE_LIMIT_WINDOW_MS) {
+      await prisma.loginAttempt.update({ where: { key: "student:all" }, data: { count: 0, windowStart: new Date(), lockedUntil: null } });
+      return;
+    }
+    if (attempt.count >= GLOBAL_STUDENT_THRESHOLD) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  } catch (e) {
+    console.error("Global student delay check failed", e);
+  }
+}
+
 async function resetRateLimit(keys: string[]) {
   try {
     await prisma.loginAttempt.deleteMany({ where: { key: { in: keys } } });
@@ -141,13 +160,14 @@ export async function loginStudent(formData: FormData) {
   const code = (formData.get('code') as string | null)?.trim() ?? "";
   const ip = clientIp();
 
-  // Per-IP limit plus a global cap so code guessing cannot be spread across addresses.
+  // Per-IP lockout, plus a global slowdown so code guessing cannot be spread across addresses.
   const rlKeys = [`student:ip:${ip}`];
-  const rlCheck = await checkRateLimit([...rlKeys, "student:all"]);
+  const rlCheck = await checkRateLimit(rlKeys);
   if (rlCheck.locked) return { error: rlCheck.error };
+  await globalStudentDelay();
   const fail = async () => {
     await incrementRateLimit(rlKeys, 10);
-    await incrementRateLimit(["student:all"], 300);
+    await incrementRateLimit(["student:all"], Number.MAX_SAFE_INTEGER);
   };
   if (!code) {
     await fail();
