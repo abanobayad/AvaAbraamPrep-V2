@@ -125,7 +125,7 @@ export async function resetKhademPassword(userId: string, newPass: string) {
     const target = await prisma.khadem.findUnique({ where: { id: userId } });
     if (!target) return { success: false, error: "الخادم غير موجود" };
     if (target.role === "superadmin") return { success: false, error: "لا يمكن تغيير كلمة سر الـ Superadmin بهذه الطريقة" };
-    if (target.role === "student" as any) return { success: false, error: "غير مصرح بتغيير كلمة سر طالب" };
+    if (target.role === "student") return { success: false, error: "غير مصرح بتغيير كلمة سر طالب" };
 
     const newHash = await hashPassword(newPass);
     await prisma.khadem.update({
