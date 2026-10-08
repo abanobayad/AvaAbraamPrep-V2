@@ -51,6 +51,7 @@ export async function handleLogin(formData: FormData) {
     id: user.id,
     username: user.username,
     role: user.role as any,
+    type: "staff",
   })
   
   cookies().set("auth_token", token, {
@@ -90,7 +91,8 @@ export async function loginStudent(formData: FormData) {
   const token = await createToken({
     id: student.id,
     username: student.name,
-    role: 'student',
+    role: "student",
+    type: "student",
   });
 
   cookies().set('auth_token', token, {
@@ -123,6 +125,7 @@ export async function resetKhademPassword(userId: string, newPass: string) {
     const target = await prisma.khadem.findUnique({ where: { id: userId } });
     if (!target) return { success: false, error: "الخادم غير موجود" };
     if (target.role === "superadmin") return { success: false, error: "لا يمكن تغيير كلمة سر الـ Superadmin بهذه الطريقة" };
+    if (target.role === "student" as any) return { success: false, error: "غير مصرح بتغيير كلمة سر طالب" };
 
     const newHash = await hashPassword(newPass);
     await prisma.khadem.update({

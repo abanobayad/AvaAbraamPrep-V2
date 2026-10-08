@@ -4,6 +4,7 @@ import { getRequestContext } from "@cloudflare/next-on-pages";
 export type Role = "superadmin" | "admin" | "student";
 
 export interface UserSession {
+  type: "student" | "staff";
   id: string;
   username: string;
   role: Role;

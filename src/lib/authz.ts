@@ -15,5 +15,10 @@ export async function requireRole(...roles: Role[]): Promise<UserSession> {
   if (roles.length > 0 && !roles.includes(session.role)) {
     throw new Error("Forbidden");
   }
+  
+  // Explicitly reject student tokens from staff-only role requirements, just as an extra check
+  if (!roles.includes("student") && session.type === "student") {
+    throw new Error("Forbidden");
+  }
   return session;
 }
