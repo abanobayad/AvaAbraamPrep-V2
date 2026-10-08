@@ -1,11 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider      = "prisma-client-js"
+  // "native" covers the build machine; the others cover Hostinger's Linux runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "rhel-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model Khadem {
@@ -13,7 +14,7 @@ model Khadem {
   name      String
   username  String   @unique
   password  String
-  role      String   // 'superadmin' | 'admin' | 'student'
+  role      String   // 'superadmin' | 'admin'
   createdAt DateTime @default(now())
 }
 
@@ -23,8 +24,8 @@ model Student {
   studentCode  String?       @unique
   studentClass String
   phone        String?
-  address      String?
-  notes        String?
+  address      String?       @db.Text
+  notes        String?       @db.Text
   totalPoints  Int           @default(0)
   needsEfteqad Boolean       @default(false)
   createdAt    DateTime      @default(now())
@@ -42,16 +43,17 @@ model Transaction {
   pointsChanged Int
   addedBy       String
   timestamp     DateTime @default(now())
+
+  @@index([studentId])
 }
 
 model Media {
   id        String   @id @default(cuid())
   title     String
-  url       String
+  url       String   @db.Text
   type      String   // 'video', 'document', 'image', 'link'
   createdAt DateTime @default(now())
 }
-
 
 model Attendance {
   id         String   @id @default(cuid())
@@ -61,6 +63,8 @@ model Attendance {
   status     Boolean  // true = present, false = absent
   recordedBy String
   createdAt  DateTime @default(now())
+
+  @@index([studentId])
 }
 
 model EfteqadLog {
@@ -69,9 +73,10 @@ model EfteqadLog {
   student    Student  @relation(fields: [studentId], references: [id])
   date       DateTime @default(now())
   khademName String
-  notes      String?
-}
+  notes      String?  @db.Text
 
+  @@index([studentId])
+}
 
 model LoginAttempt {
   key         String    @id

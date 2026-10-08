@@ -1,19 +1,20 @@
 {
   "name": "student-attendance-system",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && next build",
+    "start": "prisma migrate deploy && node scripts/ensure-admin.mjs && next start",
     "lint": "next lint",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "cf:build": "vercel build --yes && next-on-pages --skip-build",
-    "cf:dev": "wrangler pages dev .vercel/output/static --d1 DB=local-attendance-db --compatibility-date 2024-09-23 --compatibility-flag nodejs_compat --ip 127.0.0.1 --port 8788"
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed-admin": "node scripts/ensure-admin.mjs"
   },
   "dependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
-    "@prisma/adapter-d1": "5.22.0",
     "@prisma/client": "5.22.0",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-label": "^2.0.2",
@@ -35,7 +36,6 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250224.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -47,7 +47,6 @@
   },
   "overrides": {
     "next": "14.2.35",
-    "eslint-config-next": "14.2.35",
-    "@cloudflare/workers-types": "^4.20250224.0"
+    "eslint-config-next": "14.2.35"
   }
 }

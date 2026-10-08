@@ -21,11 +21,10 @@ A web-based student attendance and point-tracking system for a church Sunday Sch
 # TECH STACK
 - **Frontend:** Next.js 14.2.35 (App Router, React 18)
 - **Styling:** Tailwind CSS, Shadcn UI (Radix UI primitives + Tailwind), Lucide React icons
-- **Backend:** Next.js Server Actions running on Edge Runtime
-- **Database:** Cloudflare D1 (Serverless SQLite)
-- **ORM:** Prisma 5.22.0 with `@prisma/adapter-d1`
-- **Authentication:** Custom JWT-based auth using `jose` (edge-compatible)
-- **Hosting/Deployment:** Cloudflare Pages (via `@cloudflare/next-on-pages`)
+- **Backend:** Next.js Server Actions on the Node.js runtime
+- **Database:** MySQL (Hostinger) through Prisma 5.22.0; schema in prisma/schema.prisma, migrations in prisma/migrations
+- **Authentication:** Custom JWT-based auth using jose; HttpOnly cookie
+- **Hosting/Deployment:** Hostinger Node.js web app, imported from GitHub (main branch). Build: npm run build. Start: npm start (runs pending migrations, creates the first superadmin from env, then next start).
 
 ---
 
@@ -92,10 +91,12 @@ A web-based student attendance and point-tracking system for a church Sunday Sch
 ---
 
 # CONFIGURATION
-- **Environment Variables:**
-  - `DB`: Provided by Cloudflare Pages at runtime as a D1 Database binding (`getRequestContext().env.DB`). There are no local `.env` files tracked.
-- **`next.config.mjs`:** Not explicitly customized.
-- **`wrangler.toml`:** Removed to prevent Cloudflare Pages CI from incorrectly detecting the project as a Cloudflare Worker.
+- **Environment variables (see .env.example):**
+  - DATABASE_URL: mysql://USER:PASSWORD@127.0.0.1:3306/DATABASE (use 127.0.0.1 on Hostinger)
+  - JWT_SECRET: at least 32 random characters
+  - ADMIN_USERNAME / ADMIN_PASSWORD: first superadmin, created on start if no superadmin exists
+- Local development keeps these in a git-ignored .env file.
+- The previous Cloudflare Pages / D1 setup (next-on-pages, wrangler, D1 SQL files) was removed on 2026-10-08.
 
 ---
 
@@ -191,11 +192,11 @@ export async function createToken(payload: UserSession) {
 ---
 
 # HOW TO RUN
-1. **Install:** `npm install`
-2. **Local DB Setup:** `npx prisma migrate dev --name init` (generates `prisma/dev.db`)
-3. **Run Development Server:** `npm run dev`
-4. **Build for Cloudflare:** `npm run pages:build` (uses `@cloudflare/next-on-pages`)
-5. **Apply Remote DB Schema:** `npx wrangler d1 execute attendance-db --remote --file=0001_init.sql`
+1. **Install:** npm install (runs prisma generate)
+2. **Configure:** copy .env.example to .env and fill DATABASE_URL, JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
+3. **Create tables:** npm run db:migrate
+4. **Development server:** npm run dev
+5. **Production:** npm run build then npm start
 
 ---
 

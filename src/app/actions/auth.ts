@@ -1,20 +1,28 @@
 "use server"
 
 import { cookies, headers } from "next/headers"
-import { createToken } from "@/services/auth"
 import { redirect } from "next/navigation"
-import { getPrisma } from "@/lib/prisma";
-import { getRequestContext } from "@cloudflare/next-on-pages";
+import { prisma } from "@/lib/prisma";
+import { createToken, verifyToken } from "@/services/auth"
 import { hashPassword, verifyPassword } from "@/lib/password";
-
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
-// Rate limiting is best effort: if the LoginAttempt table is missing or D1 fails,
-// log the problem and let the login proceed instead of taking the whole login down.
+// The reverse proxy in front of the app appends the real client address as the
+// LAST X-Forwarded-For entry; earlier entries can be forged by the client.
+function clientIp() {
+  const forwarded = headers().get("x-forwarded-for");
+  if (forwarded) {
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return headers().get("x-real-ip") || "unknown";
+}
+
+// Rate limiting is best effort: if the database is unavailable, log the problem
+// and let the login proceed instead of taking the whole login down.
 async function checkRateLimit(keys: string[]) {
   try {
-    const prisma = getPrisma(getRequestContext().env as any);
     for (const key of keys) {
       const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
       if (!attempt) continue;
@@ -29,14 +37,13 @@ async function checkRateLimit(keys: string[]) {
       }
     }
   } catch (e) {
-    console.error("Rate limit check failed (is the LoginAttempt table migrated?)", e);
+    console.error("Rate limit check failed", e);
   }
   return { locked: false };
 }
 
 async function incrementRateLimit(keys: string[], limit: number) {
   try {
-    const prisma = getPrisma(getRequestContext().env as any);
     for (const key of keys) {
       const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
       if (attempt) {
@@ -54,22 +61,17 @@ async function incrementRateLimit(keys: string[], limit: number) {
 
 async function resetRateLimit(keys: string[]) {
   try {
-    const prisma = getPrisma(getRequestContext().env as any);
-    for (const key of keys) {
-      await prisma.loginAttempt.deleteMany({ where: { key } });
-    }
+    await prisma.loginAttempt.deleteMany({ where: { key: { in: keys } } });
   } catch (e) {
     console.error("Rate limit reset failed", e);
   }
 }
 
 export async function handleLogin(formData: FormData) {
-  const prisma = getPrisma(getRequestContext().env as any);
+  const username = (formData.get("username") as string | null)?.trim() ?? "";
+  const password = (formData.get("password") as string | null) ?? "";
+  const ip = clientIp();
 
-  const username = formData.get("username") as string
-  const password = formData.get("password") as string
-  const ip = headers().get("cf-connecting-ip") || headers().get("x-forwarded-for") || "unknown";
-  
   const rlKeys = [`staff:ip:${ip}`, `staff:user:${username}`];
   const rlCheck = await checkRateLimit(rlKeys);
   if (rlCheck.locked) return { error: rlCheck.error };
@@ -79,11 +81,8 @@ export async function handleLogin(formData: FormData) {
     return { error: "بيانات الدخول غير صحيحة" };
   }
 
-  // Use Prisma for auth
-  const user = await prisma.khadem.findUnique({
-    where: { username }
-  })
-  
+  const user = await prisma.khadem.findUnique({ where: { username } });
+
   if (!user) {
     await incrementRateLimit(rlKeys, 5);
     return { error: "بيانات الدخول غير صحيحة" };
@@ -91,18 +90,15 @@ export async function handleLogin(formData: FormData) {
 
   let passwordMatch = false;
   if (!user.password.startsWith("pbkdf2$")) {
-    // Legacy plain text check
+    // Legacy plain text password: accept once and upgrade it to a hash.
     if (user.password === password) {
       passwordMatch = true;
-      // Seamless migration to hash
-      const newHash = await hashPassword(password);
       await prisma.khadem.update({
         where: { id: user.id },
-        data: { password: newHash }
+        data: { password: await hashPassword(password) }
       });
     }
   } else {
-    // Web Crypto PBKDF2 check
     passwordMatch = await verifyPassword(password, user.password);
   }
 
@@ -118,7 +114,7 @@ export async function handleLogin(formData: FormData) {
     role: user.role as any,
     type: "staff",
   })
-  
+
   cookies().set("auth_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -142,25 +138,26 @@ export async function handleLogout() {
 }
 
 export async function loginStudent(formData: FormData) {
-  const prisma = getPrisma(getRequestContext().env as any);
+  const code = (formData.get('code') as string | null)?.trim() ?? "";
+  const ip = clientIp();
 
-  const code = formData.get('code') as string;
-  const ip = headers().get("cf-connecting-ip") || headers().get("x-forwarded-for") || "unknown";
-  
+  // Per-IP limit plus a global cap so code guessing cannot be spread across addresses.
   const rlKeys = [`student:ip:${ip}`];
-  const rlCheck = await checkRateLimit(rlKeys);
+  const rlCheck = await checkRateLimit([...rlKeys, "student:all"]);
   if (rlCheck.locked) return { error: rlCheck.error };
-  if (!code) {
+  const fail = async () => {
     await incrementRateLimit(rlKeys, 10);
+    await incrementRateLimit(["student:all"], 300);
+  };
+  if (!code) {
+    await fail();
     return { error: "الكود غير صحيح" };
   }
 
-  const student = await prisma.student.findUnique({
-    where: { studentCode: code }
-  });
+  const student = await prisma.student.findUnique({ where: { studentCode: code } });
 
   if (!student) {
-    await incrementRateLimit(rlKeys, 10);
+    await fail();
     return { error: "الكود غير صحيح" };
   }
 
@@ -183,9 +180,6 @@ export async function loginStudent(formData: FormData) {
   redirect('/student-portal');
 }
 
-import { requireRole } from "@/lib/authz";
-import { verifyToken } from "@/services/auth";
-
 export async function resetKhademPassword(userId: string, newPass: string) {
   try {
     const token = cookies().get("auth_token")?.value;
@@ -197,19 +191,15 @@ export async function resetKhademPassword(userId: string, newPass: string) {
       return { success: false, error: "كلمة السر يجب أن تكون بين 8 و 64 حرف" };
     }
 
-    const prisma = getPrisma(getRequestContext().env as any);
     const target = await prisma.khadem.findUnique({ where: { id: userId } });
     if (!target) return { success: false, error: "الخادم غير موجود" };
     if (target.role === "superadmin") return { success: false, error: "لا يمكن تغيير كلمة سر الـ Superadmin بهذه الطريقة" };
     if (target.role === "student") return { success: false, error: "غير مصرح بتغيير كلمة سر طالب" };
 
-    const newHash = await hashPassword(newPass);
     await prisma.khadem.update({
       where: { id: userId },
-      data: { password: newHash }
+      data: { password: await hashPassword(newPass) }
     });
-
-    
 
     return { success: true, data: null };
   } catch(e: any) {
@@ -229,7 +219,6 @@ export async function changeOwnPassword(currentPass: string, newPass: string) {
       return { success: false, error: "كلمة السر الجديدة يجب أن تكون بين 8 و 64 حرف" };
     }
 
-    const prisma = getPrisma(getRequestContext().env as any);
     const user = await prisma.khadem.findUnique({ where: { id: session.id } });
     if (!user) return { success: false, error: "المستخدم غير موجود" };
 
@@ -242,10 +231,9 @@ export async function changeOwnPassword(currentPass: string, newPass: string) {
 
     if (!match) return { success: false, error: "كلمة السر الحالية غير صحيحة" };
 
-    const newHash = await hashPassword(newPass);
     await prisma.khadem.update({
       where: { id: session.id },
-      data: { password: newHash }
+      data: { password: await hashPassword(newPass) }
     });
 
     return { success: true, data: null };
