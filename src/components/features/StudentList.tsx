@@ -10,6 +10,7 @@ import { List, ListButton, ListSkeleton, EmptyState } from "@/components/ui/list
 import { useToast } from "@/components/ui/use-toast"
 import { SERVER_UNREACHABLE } from "@/lib/messages"
 import { CLASSES } from "@/config/classes"
+import { csvCell } from "@/lib/csv"
 import { StudentSheet, type StudentRow } from "./StudentSheet"
 
 type ClassFilter = "الكل" | (typeof CLASSES)[number]
@@ -59,10 +60,9 @@ export function StudentList() {
       toast({ variant: "destructive", title: "لا يوجد ما يُصدَّر", description: "القائمة الحالية فارغة." })
       return
     }
-    const esc = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')}"`
     const rows = [
       ["الاسم", "الفصل", "الكود", "رقم الموبايل", "العنوان", "الملاحظات"].join(","),
-      ...filtered.map((s) => [s.name, s.studentClass, s.studentCode ?? "", s.phone, s.address, s.notes].map(esc).join(",")),
+      ...filtered.map((s) => [s.name, s.studentClass, s.studentCode ?? "", s.phone, s.address, s.notes].map(csvCell).join(",")),
     ]
     const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)

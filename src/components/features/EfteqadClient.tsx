@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { List, ListItem, EmptyState } from "@/components/ui/list"
 import { useToast } from "@/components/ui/use-toast"
 import { SERVER_UNREACHABLE } from "@/lib/messages"
+import { csvCell } from "@/lib/csv"
 import { EfteqadHistoryDialog } from "./EfteqadHistoryDialog"
 
 type Row = { id: string; name: string; studentClass: string; phone: string | null; address: string | null; notes: string | null }
@@ -23,10 +24,9 @@ export function EfteqadClient({ students: initial, khademName }: { students: Row
   const router = useRouter()
 
   const exportCsv = () => {
-    const esc = (v: string | null) => `"${(v ?? "").replace(/"/g, '""')}"`
     const rows = [
       ["الاسم", "الفصل", "رقم الموبايل", "العنوان", "ملاحظات"].join(","),
-      ...students.map((s) => [s.name, s.studentClass, s.phone, s.address, s.notes].map(esc).join(",")),
+      ...students.map((s) => [s.name, s.studentClass, s.phone, s.address, s.notes].map(csvCell).join(",")),
     ]
     const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
