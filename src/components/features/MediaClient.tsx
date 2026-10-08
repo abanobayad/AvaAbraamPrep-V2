@@ -12,6 +12,7 @@ import { SERVER_UNREACHABLE } from "@/lib/messages";
 import { addMedia } from "@/app/actions/db";
 import { PlaySquare, Image as ImageIcon, FileText, Link as LinkIcon, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { safeHttpUrl } from "@/lib/url";
 
 export function MediaClient({ initialMedia, role }: { initialMedia: Media[], role: string }) {
   const [mediaList, setMediaList] = useState(initialMedia);
@@ -102,7 +103,7 @@ export function MediaClient({ initialMedia, role }: { initialMedia: Media[], rol
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {mediaList.map(m => (
-            <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className="block group">
+            <a key={m.id} href={safeHttpUrl(m.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="block group">
               <Card className="h-full hover:shadow-md transition-shadow border-border hover:border-primary/50 overflow-hidden">
                 <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                   <div className="p-4 bg-muted rounded-full group-hover:scale-110 transition-transform">

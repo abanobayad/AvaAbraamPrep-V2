@@ -5,6 +5,7 @@ import { getRequestContext } from "@cloudflare/next-on-pages";
 import { EFTEQAD_ENABLED } from "@/lib/features";
 import { requireRole } from "@/lib/authz";
 import { hashPassword } from "@/lib/password";
+import { safeHttpUrl } from "@/lib/url";
 
 const GENERIC_ERROR = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
 
@@ -228,9 +229,14 @@ export async function getMedia() {
 export async function addMedia(data: { title: string; url: string; type: string }) {
   try {
     await requireRole("superadmin", "admin");
+    const url = safeHttpUrl(data.url);
+    if (!url) return { success: false, error: "الرابط غير صالح. يجب أن يبدأ بـ http:// أو https://" };
+    const title = (data.title ?? "").trim();
+    if (!title || title.length > 200) return { success: false, error: "العنوان مطلوب (حتى 200 حرف)" };
+    if (!["video", "document", "image", "link"].includes(data.type)) return { success: false, error: "النوع غير صالح" };
     const prisma = getPrisma(getRequestContext().env as any);
     const media = await prisma.media.create({
-      data: { title: data.title, url: data.url, type: data.type }
+      data: { title, url, type: data.type }
     });
     return { success: true, data: JSON.parse(JSON.stringify(media)) };
   } catch (err: any) {
