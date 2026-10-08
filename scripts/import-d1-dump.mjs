@@ -62,6 +62,9 @@ function toDate(v) {
 }
 const bool = (v) => v === 1 || v === "1" || v === true;
 const str = (v) => (v === null || v === undefined ? null : String(v));
+// Old colloquial class spellings -> the formal spelling the app uses.
+const CLASS_MAP = { "تانية إعدادي": "ثانية إعدادي", "تالتة إعدادي": "ثالثة إعدادي" };
+const normalizeClass = (v) => (v && CLASS_MAP[v]) || v;
 
 const sql = readFileSync(file, "utf8");
 const byTable = Object.fromEntries(ORDER.map((t) => [t, []]));
@@ -82,7 +85,7 @@ try {
       if (t === "Khadem") {
         await prisma.khadem.upsert({ where: { id: r.id }, create: { id: r.id, name: str(r.name), username: str(r.username), password: str(r.password), role: str(r.role), createdAt: toDate(r.createdAt) }, update: { name: str(r.name), username: str(r.username), password: str(r.password), role: str(r.role) } });
       } else if (t === "Student") {
-        const data = { name: str(r.name), studentCode: str(r.studentCode), studentClass: str(r.studentClass), phone: str(r.phone), address: str(r.address), notes: str(r.notes), totalPoints: Number(r.totalPoints) || 0, needsEfteqad: bool(r.needsEfteqad) };
+        const data = { name: str(r.name), studentCode: str(r.studentCode), studentClass: normalizeClass(str(r.studentClass)), phone: str(r.phone), address: str(r.address), notes: str(r.notes), totalPoints: Number(r.totalPoints) || 0, needsEfteqad: bool(r.needsEfteqad) };
         await prisma.student.upsert({ where: { id: r.id }, create: { id: r.id, ...data, createdAt: toDate(r.createdAt) }, update: data });
       } else if (t === "Transaction") {
         await prisma.transaction.upsert({ where: { id: r.id }, create: { id: r.id, studentId: r.studentId, actionName: str(r.actionName), pointsChanged: Number(r.pointsChanged) || 0, addedBy: str(r.addedBy), timestamp: toDate(r.timestamp) }, update: {} });
