@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const results: Record<number, number> = {};
-  for (const iters of [10000, 5000, 2000]) {
+  for (const iters of [100000, 50000, 10000]) {
     const start = Date.now();
     await hashPassword('testpass', iters);
     results[iters] = Date.now() - start;
