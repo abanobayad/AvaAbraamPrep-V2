@@ -1,43 +1,64 @@
 "use client"
 import { useState } from "react";
-import { Student } from "@prisma/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { awardPoints } from "@/app/actions/db";
-import { Award, Plus, Minus } from "lucide-react";
-import { POINTS_CONFIG } from "@/config/points";
+import { Loader2 } from "lucide-react";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
 
-export function PointsLeaderboardClient({ initialStudents, currentUser }: { initialStudents: Student[], currentUser: string }) {
+const QUICK_BUTTONS = [
+  { label: "دوري كورة", value: 10, variant: "outline" },
+  { label: "دوري شطرنج", value: 15, variant: "outline" },
+  { label: "دوري بلايستيشن", value: 15, variant: "outline" },
+  { label: "دوري بينج بونج", value: 15, variant: "outline" },
+  { label: "خصم سلوك", value: -5, variant: "destructive" },
+];
+
+export function PointsLeaderboardClient({ initialStudents }: { initialStudents: any[] }) {
   const [students, setStudents] = useState(initialStudents);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  
   const [isAwardDialogOpen, setIsAwardDialogOpen] = useState(false);
-  const [historyStudent, setHistoryStudent] = useState<Student | null>(null);
+  const [isDeductConfirmOpen, setIsDeductConfirmOpen] = useState(false);
+  
+  const [historyStudent, setHistoryStudent] = useState<any | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  
   const [customPoints, setCustomPoints] = useState("");
   const [customReason, setCustomReason] = useState("");
+  const [deductReason, setDeductReason] = useState("");
+  
+  const [loading, setLoading] = useState(false);
+  
   const { toast } = useToast();
 
-  const sortedStudents = [...students].sort((a, b) => b.totalPoints - a.totalPoints);
+  const sortedStudents = [...students].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
 
   const handleAward = async (studentId: string, points: number, reason: string) => {
+    setLoading(true);
     try {
-      const updatedStudent = await awardPoints(studentId, points, reason) as any;
-        if (!updatedStudent || updatedStudent.error || updatedStudent.success === false) {
-          throw new Error(updatedStudent?.error || 'Failed to award points (500 Error)');
-        }
-        const finalStudent = updatedStudent.data || updatedStudent;
-        setStudents(students.map(s => s.id === studentId ? finalStudent : s));
-      toast({ title: "تم بنجاح", description: `تمت إضافة النقاط بنجاح (${reason})`, className: "bg-success text-white" });
+      const updatedStudent = await awardPoints(studentId, points, reason);
+      if (!updatedStudent.success) {
+        throw new Error(updatedStudent.error || 'Failed to award points');
+      }
+      
+      const finalStudent = updatedStudent.data;
+      setStudents(prev => prev.map(s => s.id === studentId ? finalStudent : s));
+      
+      toast({ title: "تم بنجاح", description: `تم حفظ النقاط (${reason})`, className: "bg-success text-white" });
       setCustomPoints("");
       setCustomReason("");
+      setDeductReason("");
       setIsAwardDialogOpen(false);
+      setIsDeductConfirmOpen(false);
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,6 +69,15 @@ export function PointsLeaderboardClient({ initialStudents, currentUser }: { init
     handleAward(selectedStudent.id, pts, customReason);
   };
 
+  const handleQuickButton = (btn: any) => {
+    if (btn.label === "خصم سلوك") {
+      setIsAwardDialogOpen(false);
+      setIsDeductConfirmOpen(true);
+    } else {
+      handleAward(selectedStudent!.id, btn.value, btn.label);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <TransactionHistoryDialog 
@@ -56,38 +86,81 @@ export function PointsLeaderboardClient({ initialStudents, currentUser }: { init
         onClose={() => setIsHistoryOpen(false)} 
       />
 
-      <Dialog open={isAwardDialogOpen} onOpenChange={setIsAwardDialogOpen}>
+      {/* Deduct Confirm Dialog */}
+      <Dialog open={isDeductConfirmOpen} onOpenChange={(open) => !loading && setIsDeductConfirmOpen(open)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>تأكيد خصم سلوك</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <Label>سبب الخصم (اختياري)</Label>
+            <Input 
+              value={deductReason} 
+              onChange={e => setDeductReason(e.target.value)} 
+              placeholder="مثال: شغب في الفصل..." 
+              disabled={loading}
+            />
+          </div>
+          <DialogFooter className="flex-row gap-2 justify-start mt-4">
+            <Button 
+              variant="destructive" 
+              disabled={loading}
+              onClick={() => handleAward(selectedStudent!.id, -5, deductReason ? `خصم سلوك: ${deductReason}` : "خصم سلوك")}
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+              تأكيد الخصم (-5)
+            </Button>
+            <Button variant="outline" disabled={loading} onClick={() => {
+              setIsDeductConfirmOpen(false);
+              setIsAwardDialogOpen(true);
+            }}>
+              رجوع
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Award Dialog */}
+      <Dialog open={isAwardDialogOpen} onOpenChange={(open) => !loading && setIsAwardDialogOpen(open)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>إدارة نقاط: {selectedStudent?.name}</DialogTitle>
+            <DialogTitle>تعديل نقاط: {selectedStudent?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 mt-4">
             <div className="space-y-2">
-              <Label className="text-muted-foreground">نقاط سريعة</Label>
+              <Label className="text-muted-foreground">أزرار سريعة</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => handleAward(selectedStudent!.id, POINTS_CONFIG.MASS.value, POINTS_CONFIG.MASS.label)}>{POINTS_CONFIG.MASS.label} (+{POINTS_CONFIG.MASS.value})</Button>
-                <Button variant="outline" onClick={() => handleAward(selectedStudent!.id, POINTS_CONFIG.HYMNS.value, POINTS_CONFIG.HYMNS.label)}>{POINTS_CONFIG.HYMNS.label} (+{POINTS_CONFIG.HYMNS.value})</Button>
-                <Button variant="outline" onClick={() => handleAward(selectedStudent!.id, POINTS_CONFIG.SUNDAY_SCHOOL.value, POINTS_CONFIG.SUNDAY_SCHOOL.label)}>{POINTS_CONFIG.SUNDAY_SCHOOL.label} (+{POINTS_CONFIG.SUNDAY_SCHOOL.value})</Button>
-                <Button variant="outline" onClick={() => handleAward(selectedStudent!.id, POINTS_CONFIG.PRAISE_VESPERS.value, POINTS_CONFIG.PRAISE_VESPERS.label)}>{POINTS_CONFIG.PRAISE_VESPERS.label} (+{POINTS_CONFIG.PRAISE_VESPERS.value})</Button>
-                <Button variant="outline" className="col-span-2" onClick={() => handleAward(selectedStudent!.id, POINTS_CONFIG.BIBLE_STUDY.value, POINTS_CONFIG.BIBLE_STUDY.label)}>{POINTS_CONFIG.BIBLE_STUDY.label} (+{POINTS_CONFIG.BIBLE_STUDY.value})</Button>
+                {QUICK_BUTTONS.map((btn) => (
+                  <Button 
+                    key={btn.label}
+                    variant={btn.variant as any} 
+                    disabled={loading}
+                    onClick={() => handleQuickButton(btn)}
+                  >
+                    {btn.label} ({btn.value > 0 ? `+${btn.value}` : btn.value})
+                  </Button>
+                ))}
               </div>
             </div>
 
             <hr />
 
             <form onSubmit={handleCustomPoints} className="space-y-4">
-              <Label className="text-muted-foreground">نقاط مخصصة (إضافة / خصم)</Label>
+              <Label className="text-muted-foreground">إضافة مخصصة (نقاط / خصم)</Label>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>النقاط (يمكن أن تكون بالسالب)</Label>
-                  <Input type="number" dir="ltr" value={customPoints} onChange={e => setCustomPoints(e.target.value)} placeholder="مثال: 5 أو -2" required />
+                  <Label>النقاط</Label>
+                  <Input type="number" dir="ltr" value={customPoints} onChange={e => setCustomPoints(e.target.value)} placeholder="مثال: 5 أو -2" required disabled={loading} />
                 </div>
                 <div className="space-y-2">
                   <Label>السبب</Label>
-                  <Input value={customReason} onChange={e => setCustomReason(e.target.value)} placeholder="سبب الإضافة/الخصم" required />
+                  <Input value={customReason} onChange={e => setCustomReason(e.target.value)} placeholder="السبب..." required disabled={loading} />
                 </div>
               </div>
-              <Button type="submit" className="w-full">حفظ النقاط المخصصة</Button>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+                حفظ
+              </Button>
             </form>
           </div>
         </DialogContent>
@@ -97,11 +170,10 @@ export function PointsLeaderboardClient({ initialStudents, currentUser }: { init
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px] text-center">المركز</TableHead>
+              <TableHead className="w-[80px] text-center">الترتيب</TableHead>
               <TableHead>الاسم</TableHead>
               <TableHead>الفصل</TableHead>
-              <TableHead>تاريخ آخر تحديث</TableHead>
-              <TableHead>مجموع النقاط</TableHead>
+              <TableHead>إجمالي النقاط</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,19 +189,18 @@ export function PointsLeaderboardClient({ initialStudents, currentUser }: { init
                 <TableCell className="text-center font-bold text-muted-foreground">{index + 1}</TableCell>
                 <TableCell className="font-bold text-primary">{s.name}</TableCell>
                 <TableCell>{s.studentClass}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  {s.updatedAt ? new Date(s.updatedAt).toLocaleDateString('ar-EG') : "-"}
-                </TableCell>
                 <TableCell 
-                  className="text-xl font-black text-amber-500 hover:bg-amber-100 rounded transition-colors"
+                  className={`text-xl font-black rounded transition-colors ${s.totalPoints < 0 ? 'text-destructive hover:bg-destructive/10' : 'text-amber-500 hover:bg-amber-100'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setHistoryStudent(s);
                     setIsHistoryOpen(true);
                   }}
-                  title="عرض سجل النقاط"
+                  title="سجل النقاط"
                 >
-                  <span className="border-b-2 border-dashed border-amber-500/50 pb-0.5">{s.totalPoints}</span>
+                  <span className={`border-b-2 border-dashed pb-0.5 ${s.totalPoints < 0 ? 'border-destructive/50' : 'border-amber-500/50'}`}>
+                    <span dir="ltr">{s.totalPoints}</span>
+                  </span>
                 </TableCell>
               </TableRow>
             ))}

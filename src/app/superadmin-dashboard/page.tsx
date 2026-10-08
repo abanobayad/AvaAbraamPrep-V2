@@ -50,10 +50,7 @@ export default async function SuperadminDashboard() {
           <span className="font-bold text-lg text-center leading-tight">الميديا</span>
         </Link>
 
-        <Link href="/attendance" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-indigo-500 group">
-          <CalendarCheck className="h-12 w-12 mb-3 group-hover:animate-bounce" />
-          <span className="font-bold text-lg text-center leading-tight">تسجيل الحضور</span>
-        </Link>
+        
 
         <Link href="/efteqad" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-emerald-500 group">
           <HeartHandshake className="h-12 w-12 mb-3 group-hover:animate-bounce" />

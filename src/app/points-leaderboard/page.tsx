@@ -43,7 +43,7 @@ export default async function PointsLeaderboardPage() {
         </Button>
       </div>
       
-      <PointsLeaderboardClient initialStudents={students} currentUser={session.username} />
+      <PointsLeaderboardClient initialStudents={students}  />
     </div>
   );
 }

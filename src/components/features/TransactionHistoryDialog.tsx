@@ -51,7 +51,7 @@ export function TransactionHistoryDialog({
               {transactions.map((tx, i) => (
                 <div key={tx.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                   <div className="flex items-center justify-center w-10 h-10 rounded-full border border-background bg-muted text-muted-foreground shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                    <span className={`font-bold ${tx.pointsChanged > 0 ? 'text-success' : 'text-destructive'}`}>
+                    <span dir="ltr" className={`font-bold ${tx.pointsChanged > 0 ? 'text-success' : 'text-destructive'}`}>
                       {tx.pointsChanged > 0 ? '+' : ''}{tx.pointsChanged}
                     </span>
                   </div>

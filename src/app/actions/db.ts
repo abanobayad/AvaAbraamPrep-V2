@@ -131,21 +131,44 @@ export async function awardPoints(studentId: string, points: number, actionName:
     const session = await requireRole("superadmin", "admin");
     const addedBy = session.username;
     
-    const prisma = getPrisma(getRequestContext().env as any);
-    const [transaction, student] = await prisma.$transaction([
-      prisma.transaction.create({
-        data: { studentId, actionName, pointsChanged: points, addedBy }
-      }),
-      prisma.student.update({
-        where: { id: studentId },
-        data: { totalPoints: { increment: points } }
-      })
-    ]);
+    if (!Number.isInteger(points) || points < -100 || points > 100 || points === 0) {
+      return { success: false, error: "قيمة غير صحيحة" };
+    }
+    if (typeof actionName !== "string" || actionName.trim().length === 0 || actionName.length > 100) {
+      return { success: false, error: "اسم فعل غير صحيح" };
+    }
 
-    return { success: true, data: JSON.parse(JSON.stringify(student)) };
+    const env = getRequestContext().env as any;
+    const db = env.DB;
+
+    const studentCheck = await db.prepare('SELECT id, name, studentClass, totalPoints FROM "Student" WHERE id = ?').bind(studentId).first();
+    if (!studentCheck) {
+      return { success: false, error: "الطالب غير موجود" };
+    }
+
+    const txId = 'c' + crypto.randomUUID().replace(/-/g, '').substring(0, 24);
+    const timestamp = new Date().toISOString();
+
+    const insertTx = db.prepare('INSERT INTO "Transaction" (id, studentId, actionName, pointsChanged, addedBy, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(txId, studentId, actionName, points, addedBy, timestamp);
+    
+    const updateStudent = db.prepare('UPDATE "Student" SET totalPoints = totalPoints + ?, updatedAt = ? WHERE id = ?')
+      .bind(points, timestamp, studentId);
+      
+    await db.batch([insertTx, updateStudent]);
+
+    return { 
+      success: true, 
+      data: { 
+        id: studentCheck.id, 
+        name: studentCheck.name, 
+        studentClass: studentCheck.studentClass, 
+        totalPoints: studentCheck.totalPoints + points 
+      } 
+    };
   } catch (err: any) {
     console.error("Action Error:", err);
-    return { success: false, error: GENERIC_ERROR };
+    return { success: false, error: "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى." };
   }
 }
 
@@ -208,48 +231,6 @@ export async function addMedia(data: { title: string; url: string; type: string 
       data: { title: data.title, url: data.url, type: data.type }
     });
     return { success: true, data: JSON.parse(JSON.stringify(media)) };
-  } catch (err: any) {
-    console.error("Action Error:", err);
-    return { success: false, error: GENERIC_ERROR };
-  }
-}
-
-export async function saveAttendance(date: Date, records: { studentId: string; status: boolean }[], recordedBy: string) {
-  try {
-    await requireRole("superadmin", "admin");
-    const prisma = getPrisma(getRequestContext().env as any);
-    const normalizedDate = new Date(date);
-    normalizedDate.setHours(0, 0, 0, 0);
-
-    await prisma.$transaction(async (tx) => {
-      for (const record of records) {
-        await tx.attendance.create({
-          data: { studentId: record.studentId, date: normalizedDate, status: record.status, recordedBy }
-        });
-
-        if (record.status) {
-          await tx.transaction.create({
-            data: { studentId: record.studentId, actionName: 'حضور مدارس الأحد', pointsChanged: 15, addedBy: recordedBy }
-          });
-          await tx.student.update({
-            where: { id: record.studentId },
-            data: { totalPoints: { increment: 15 } }
-          });
-        } else {
-          const previousRecord = await tx.attendance.findFirst({
-            where: { studentId: record.studentId, date: { lt: normalizedDate } },
-            orderBy: { date: 'desc' }
-          });
-          if (previousRecord && !previousRecord.status) {
-            await tx.student.update({
-              where: { id: record.studentId },
-              data: { needsEfteqad: true }
-            });
-          }
-        }
-      }
-    });
-    return { success: true, data: null };
   } catch (err: any) {
     console.error("Action Error:", err);
     return { success: false, error: GENERIC_ERROR };
@@ -324,5 +305,25 @@ export async function getLeaderboard() {
   } catch (err: any) {
     console.error("Action Error:", err);
     return { success: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function deleteStudent(studentId: string) {
+  try {
+    await requireRole("superadmin", "admin");
+    const env = getRequestContext().env as any;
+    const db = env.DB;
+
+    const delTransactions = db.prepare('DELETE FROM "Transaction" WHERE studentId = ?').bind(studentId);
+    const delAttendance = db.prepare('DELETE FROM "Attendance" WHERE studentId = ?').bind(studentId);
+    const delEfteqad = db.prepare('DELETE FROM "EfteqadLog" WHERE studentId = ?').bind(studentId);
+    const delStudent = db.prepare('DELETE FROM "Student" WHERE id = ?').bind(studentId);
+
+    await db.batch([delTransactions, delAttendance, delEfteqad, delStudent]);
+
+    return { success: true, data: null };
+  } catch (err: any) {
+    console.error("Action Error:", err);
+    return { success: false, error: "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى." };
   }
 }
