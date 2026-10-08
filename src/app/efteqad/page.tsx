@@ -14,8 +14,7 @@ export default async function EfteqadPage() {
 
   let students = [];
   try {
-    const rawStudents = await getEfteqadStudents();
-    students = JSON.parse(JSON.stringify(rawStudents));
+    const res = await getEfteqadStudents(); if (res.success) students = res.data;
   } catch (error: any) {
     return (
       <div className="max-w-5xl mx-auto space-y-8 pb-12">

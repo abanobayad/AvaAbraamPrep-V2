@@ -16,8 +16,10 @@ export function StudentList({ role = "student" }: { role?: string }) {
   const fetchStudents = async () => {
     setLoading(true)
     try {
-      const data = await getStudents()
-      setStudents(data)
+      const res = await getStudents();
+      if (res.success) {
+        setStudents(res.data);
+      }
     } catch (err) {
       console.error(err)
     } finally {

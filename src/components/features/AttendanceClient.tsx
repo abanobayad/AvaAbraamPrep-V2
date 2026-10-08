@@ -35,7 +35,10 @@ export function AttendanceClient({ students, khademName }: { students: Student[]
         status: attendanceState[s.id] || false
       }))
       
-      await saveAttendance(new Date(date), records, khademName)
+      const res = await saveAttendance(new Date(date), records, khademName);
+      if (!res || res.error || res.success === false) {
+        throw new Error(res?.error || 'Failed to save attendance');
+      }
       
       toast({
         title: "تم الحفظ بنجاح",

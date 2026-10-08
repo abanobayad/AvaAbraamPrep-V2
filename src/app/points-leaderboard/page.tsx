@@ -17,8 +17,7 @@ export default async function PointsLeaderboardPage() {
 
   let students = [];
   try {
-    const rawStudents = await getLeaderboard();
-    students = JSON.parse(JSON.stringify(rawStudents));
+    const res = await getLeaderboard(); if (res.success) students = res.data;
   } catch (error: any) {
     return (
       <div className="max-w-7xl mx-auto space-y-8 pt-6">

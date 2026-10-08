@@ -23,7 +23,11 @@ export function MediaClient({ initialMedia, role }: { initialMedia: Media[], rol
     e.preventDefault();
     setLoading(true);
     try {
-      const newMedia = await addMedia(formData);
+      const res = await addMedia(formData);
+      if (!res || res.error || res.success === false) {
+        throw new Error(res?.error || 'Failed to add media');
+      }
+      const newMedia = res.data || res;
       setMediaList([newMedia, ...mediaList]);
       setIsDialogOpen(false);
       toast({ title: "تم بنجاح", description: "تم إضافة الميديا بنجاح", className: "bg-success text-white" });

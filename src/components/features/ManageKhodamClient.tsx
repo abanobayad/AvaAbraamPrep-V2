@@ -40,7 +40,10 @@ export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] 
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteKhadem(id);
+      const res = await deleteKhadem(id);
+      if (!res || res.error || res.success === false) {
+        throw new Error(res?.error || 'Failed to delete khadem');
+      }
       setKhodam(khodam.filter(k => k.id !== id));
       toast({ title: "تم بنجاح", description: "تم حذف الخادم بنجاح" });
     } catch (err: any) {

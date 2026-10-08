@@ -15,11 +15,9 @@ export default async function StudentPortal() {
   let allStudents = [];
   try {
     if (session) {
-      const rawStudent = await getStudentById(session.id);
-      student = JSON.parse(JSON.stringify(rawStudent));
+      const resStudent = await getStudentById(session.id); if (resStudent.success) student = resStudent.data;
     }
-    const rawAll = await getLeaderboard();
-    allStudents = JSON.parse(JSON.stringify(rawAll));
+    const resAll = await getLeaderboard(); if (resAll.success) allStudents = resAll.data;
   } catch (error: any) {
     return (
       <div className="max-w-5xl mx-auto space-y-12 pt-6">

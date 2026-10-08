@@ -17,8 +17,10 @@ export function EfteqadHistoryDialog({ studentId, studentName }: { studentId: st
     if (isOpen) {
       setLoading(true)
       try {
-        const history = await getEfteqadHistory(studentId)
-        setLogs(history)
+        const res = await getEfteqadHistory(studentId);
+        if (res && res.success) {
+          setLogs(res.data);
+        }
       } catch (err) {
         console.error(err)
       } finally {

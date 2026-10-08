@@ -26,7 +26,7 @@ export function PointsLeaderboardClient({ initialStudents, currentUser }: { init
 
   const handleAward = async (studentId: string, points: number, reason: string) => {
     try {
-      const updatedStudent = await awardPoints(studentId, points, reason, currentUser) as any;
+      const updatedStudent = await awardPoints(studentId, points, reason) as any;
         if (!updatedStudent || updatedStudent.error || updatedStudent.success === false) {
           throw new Error(updatedStudent?.error || 'Failed to award points (500 Error)');
         }

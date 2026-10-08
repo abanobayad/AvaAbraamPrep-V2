@@ -43,7 +43,10 @@ export function EfteqadClient({ students: initialStudents, khademName }: { stude
   const handleSubmit = async (studentId: string) => {
     setLoadingId(studentId)
     try {
-      await logEfteqad(studentId, khademName, notes)
+      const res = await logEfteqad(studentId, khademName, notes);
+      if (!res || res.error || res.success === false) {
+        throw new Error(res?.error || 'Failed to log efteqad');
+      }
       setStudents(students.filter(s => s.id !== studentId))
       toast({
         title: "تم التسجيل",

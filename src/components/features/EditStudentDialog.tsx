@@ -28,7 +28,11 @@ export function EditStudentDialog({ student, onUpdated }: { student: Student, on
     e.preventDefault();
     setLoading(true);
     try {
-      const updated = await updateStudent(student.id, formData);
+      const res = await updateStudent(student.id, formData);
+        if (!res || res.error || res.success === false) {
+          throw new Error(res?.error || 'Failed to update student');
+        }
+        const updated = res.data || res;
       toast({ title: "تم التعديل", description: "تم تعديل بيانات المخدوم بنجاح", className: "bg-success text-white" });
       onUpdated(updated);
       setOpen(false);

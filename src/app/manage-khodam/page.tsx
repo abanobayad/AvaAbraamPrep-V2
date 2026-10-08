@@ -17,8 +17,7 @@ export default async function ManageKhodamPage() {
 
   let khodam = [];
   try {
-    const rawKhodam = await getKhodam();
-    khodam = JSON.parse(JSON.stringify(rawKhodam));
+    const res = await getKhodam(); if (res.success) khodam = res.data;
   } catch (error: any) {
     return (
       <div className="max-w-7xl mx-auto space-y-8 pt-6">

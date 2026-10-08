@@ -14,8 +14,7 @@ export default async function AttendancePage() {
 
   let students = [];
   try {
-    const rawStudents = await getStudents();
-    students = JSON.parse(JSON.stringify(rawStudents));
+    const res = await getStudents(); if (res.success) students = res.data;
   } catch (error: any) {
     return (
       <div className="max-w-4xl mx-auto space-y-8 pb-12">

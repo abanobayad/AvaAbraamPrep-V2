@@ -16,8 +16,10 @@ export function ExportDataCard() {
   const handleExport = async () => {
     setLoading(true)
     try {
-      const students = await getStudents(selectedClass)
-      if (students.length === 0) {
+      const res = await getStudents(selectedClass);
+        if (!res.success) throw new Error(res.error);
+        const students = res.data;
+        if (students.length === 0) {
         toast({ variant: "destructive", title: "تنبيه", description: "لا يوجد طلاب في هذا الفصل للتصدير" })
         return
       }

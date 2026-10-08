@@ -20,7 +20,8 @@ export function TransactionHistoryDialog({
   useEffect(() => {
     if (isOpen && student) {
       setLoading(true);
-      getStudentHistory(student.id).then(txs => {
+      getStudentHistory(student.id).then(res => {
+        const txs = res.success ? res.data : [];
         setTransactions(txs);
         setLoading(false);
       });
