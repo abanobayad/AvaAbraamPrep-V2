@@ -3,7 +3,8 @@ import { PrismaD1 } from '@prisma/adapter-d1'
 
 // Cloudflare injects the D1 database binding into the global context
 export interface Env {
-  DB: D1Database
+  DB: D1Database;
+  JWT_SECRET?: string;
 }
 
 let prisma: PrismaClient | undefined

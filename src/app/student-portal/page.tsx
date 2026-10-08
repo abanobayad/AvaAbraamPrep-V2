@@ -4,7 +4,7 @@ import { handleLogout } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Award, PlaySquare } from "lucide-react";
 import Link from "next/link";
-import { getStudentById, getStudents } from "@/app/actions/db";
+import { getStudentById, getLeaderboard } from "@/app/actions/db";
 import { StudentPortalClient } from "@/components/features/StudentPortalClient";
 
 export default async function StudentPortal() {
@@ -18,7 +18,7 @@ export default async function StudentPortal() {
       const rawStudent = await getStudentById(session.id);
       student = JSON.parse(JSON.stringify(rawStudent));
     }
-    const rawAll = await getStudents();
+    const rawAll = await getLeaderboard();
     allStudents = JSON.parse(JSON.stringify(rawAll));
   } catch (error: any) {
     return (

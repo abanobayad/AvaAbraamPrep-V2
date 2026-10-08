@@ -23,7 +23,7 @@ export function AddStudentForm() {
 
   const validate = () => {
     if (!formData.name.trim()) return "الاسم مطلوب"
-    if (!/^[\u0600-\u06FF\s]+$/.test(formData.name)) return "الاسم يجب أن يحتوي على حروف عربية فقط"
+    if (!/^[\u0600-\u06FF\s]+$/.test(formData.name.trim())) return "الاسم يجب أن يحتوي على حروف عربية فقط"
     if (!formData.studentClass) return "برجاء اختيار الفصل"
     if (formData.phone && !/^[0-9]{0,11}$/.test(formData.phone)) return "رقم الموبايل غير صحيح (أرقام إنجليزية فقط، أقصى طول 11)"
     return null

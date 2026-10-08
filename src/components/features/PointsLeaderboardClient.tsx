@@ -26,8 +26,12 @@ export function PointsLeaderboardClient({ initialStudents, currentUser }: { init
 
   const handleAward = async (studentId: string, points: number, reason: string) => {
     try {
-      const updatedStudent = await awardPoints(studentId, points, reason, currentUser);
-      setStudents(students.map(s => s.id === studentId ? updatedStudent : s));
+      const updatedStudent = await awardPoints(studentId, points, reason, currentUser) as any;
+        if (!updatedStudent || updatedStudent.error || updatedStudent.success === false) {
+          throw new Error(updatedStudent?.error || 'Failed to award points (500 Error)');
+        }
+        const finalStudent = updatedStudent.data || updatedStudent;
+        setStudents(students.map(s => s.id === studentId ? finalStudent : s));
       toast({ title: "تم بنجاح", description: `تمت إضافة النقاط بنجاح (${reason})`, className: "bg-success text-white" });
       setCustomPoints("");
       setCustomReason("");

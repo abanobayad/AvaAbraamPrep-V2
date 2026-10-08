@@ -1,12 +1,11 @@
 "use server"
 
-
 import { cookies } from "next/headers"
 import { createToken } from "@/services/auth"
 import { redirect } from "next/navigation"
 import { getPrisma } from "@/lib/prisma";
 import { getRequestContext } from "@cloudflare/next-on-pages";
-
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 export async function handleLogin(formData: FormData) {
   const prisma = getPrisma(getRequestContext().env as any);
@@ -18,14 +17,33 @@ export async function handleLogin(formData: FormData) {
     return { error: "الرجاء إدخال اسم المستخدم وكلمة المرور" }
   }
 
-  
-
   // Use Prisma for auth
   const user = await prisma.khadem.findUnique({
     where: { username }
   })
   
-  if (!user || user.password !== password) {
+  if (!user) {
+    return { error: "بيانات الدخول غير صحيحة" }
+  }
+
+  let passwordMatch = false;
+  if (!user.password.startsWith("pbkdf2$")) {
+    // Legacy plain text check
+    if (user.password === password) {
+      passwordMatch = true;
+      // Seamless migration to hash
+      const newHash = await hashPassword(password);
+      await prisma.khadem.update({
+        where: { id: user.id },
+        data: { password: newHash }
+      });
+    }
+  } else {
+    // Web Crypto PBKDF2 check
+    passwordMatch = await verifyPassword(password, user.password);
+  }
+
+  if (!passwordMatch) {
     return { error: "بيانات الدخول غير صحيحة" }
   }
 
@@ -53,8 +71,6 @@ export async function handleLogin(formData: FormData) {
 }
 
 export async function handleLogout() {
-  const prisma = getPrisma(getRequestContext().env as any);
-
   cookies().delete("auth_token")
   redirect("/")
 }
@@ -63,15 +79,13 @@ export async function loginStudent(formData: FormData) {
   const prisma = getPrisma(getRequestContext().env as any);
 
   const code = formData.get('code') as string;
-  if (!code) return { error: 'برجاء إدخال الكود' };
-
-  
+  if (!code) return { error: 'الرجاء إدخال الكود' };
 
   const student = await prisma.student.findUnique({
     where: { studentCode: code }
   });
 
-  if (!student) return { error: 'الكود غير صحيح' };
+  if (!student) return { error: 'كود غير صحيح' };
 
   const token = await createToken({
     id: student.id,
@@ -89,4 +103,3 @@ export async function loginStudent(formData: FormData) {
 
   redirect('/student-portal');
 }
-

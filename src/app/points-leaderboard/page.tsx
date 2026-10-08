@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getStudents } from "@/app/actions/db";
+import { getLeaderboard } from "@/app/actions/db";
 import { PointsLeaderboardClient } from "@/components/features/PointsLeaderboardClient";
 
 export default async function PointsLeaderboardPage() {
@@ -17,7 +17,7 @@ export default async function PointsLeaderboardPage() {
 
   let students = [];
   try {
-    const rawStudents = await getStudents();
+    const rawStudents = await getLeaderboard();
     students = JSON.parse(JSON.stringify(rawStudents));
   } catch (error: any) {
     return (
