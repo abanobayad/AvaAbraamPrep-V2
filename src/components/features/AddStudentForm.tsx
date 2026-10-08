@@ -1,105 +1,119 @@
 "use client"
 import { useState } from "react"
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import Link from "next/link"
+import { Loader2, Copy, Check } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
+import { SERVER_UNREACHABLE } from "@/lib/messages"
+import { CLASSES } from "@/config/classes"
 import { addStudent } from "@/app/actions/db"
-import { Loader2 } from "lucide-react"
+
+const EMPTY = { name: "", studentClass: "", phone: "", address: "", notes: "" }
 
 export function AddStudentForm() {
-  const { toast } = useToast();
-  const router = useRouter();
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    name: "",
-    studentClass: "",
-    phone: "",
-    address: "",
-    notes: ""
-  })
+  const [form, setForm] = useState(EMPTY)
+  const [created, setCreated] = useState<{ name: string; studentCode: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const validate = () => {
-    if (!formData.name.trim()) return "الاسم مطلوب"
-    if (!/^[\u0600-\u06FF\s]+$/.test(formData.name.trim())) return "الاسم يجب أن يحتوي على حروف عربية فقط"
-    if (!formData.studentClass) return "برجاء اختيار الفصل"
-    if (formData.phone && !/^[0-9]{0,11}$/.test(formData.phone)) return "رقم الموبايل غير صحيح (أرقام إنجليزية فقط، أقصى طول 11)"
+    if (!form.name.trim()) return "الاسم مطلوب"
+    if (!/^[؀-ۿ\s]+$/.test(form.name.trim())) return "الاسم بالحروف العربية فقط"
+    if (!form.studentClass) return "اختر الفصل"
+    if (form.phone && !/^[0-9]{0,11}$/.test(form.phone)) return "رقم الموبايل أرقام إنجليزية فقط، 11 رقمًا كحد أقصى"
     return null
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     const error = validate()
     if (error) {
-      toast({ variant: "destructive", title: "خطأ", description: error })
+      toast({ variant: "destructive", title: "راجع البيانات", description: error })
       return
     }
-
     setLoading(true)
     try {
-      const response = await addStudent(formData) as any;
-      if (!response?.success) {
-        throw new Error(response?.error || "حدث خطأ في قاعدة البيانات (500)");
-      }
-      toast({ variant: "default", className: "bg-success text-white", title: "تم بنجاح", description: "تمت إضافة المخدوم بنجاح" })
-      setFormData({ name: "", studentClass: "", phone: "", address: "", notes: "" });
-        router.refresh();
-      // Fire custom event to refresh list
+      const res = await addStudent(form)
+      if (!res?.success) throw new Error(res?.error || SERVER_UNREACHABLE)
+      setCreated({ name: res.data.name, studentCode: res.data.studentCode })
+      setForm(EMPTY)
+      setCopied(false)
       window.dispatchEvent(new Event("refresh-students"))
     } catch (err: any) {
-      toast({ variant: "destructive", title: "حدث خطأ", description: err.message })
+      toast({ variant: "destructive", title: "لم يتم الحفظ", description: err.message })
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle>إضافة مخدوم جديد</CardTitle>
-        <CardDescription>أدخل بيانات الطالب لإضافته للنظام</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">👤 اسم المخدوم *</Label>
-            <Input id="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="أدخل الاسم بالعربية" />
-          </div>
-          <div className="space-y-2">
-            <Label>🏫 الفصل *</Label>
-            <Select value={formData.studentClass} onValueChange={v => setFormData({...formData, studentClass: v})}>
-              <SelectTrigger dir="rtl">
-                <SelectValue placeholder="اختر الفصل" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="أولى إعدادي">أولى إعدادي</SelectItem>
-                <SelectItem value="ثانية إعدادي">ثانية إعدادي</SelectItem>
-                <SelectItem value="ثالثة إعدادي">ثالثة إعدادي</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">📱 رقم الموبايل</Label>
-            <Input id="phone" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="مثال: 01012345678" maxLength={11} dir="ltr" className="text-right" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="address">📍 العنوان</Label>
-            <Input id="address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="العنوان بالتفصيل" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">📝 ملاحظات إضافية</Label>
-            <Textarea id="notes" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات..." />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
-            حفظ البيانات
+  const copy = async () => {
+    if (!created) return
+    await navigator.clipboard.writeText(created.studentCode)
+    setCopied(true)
+  }
+
+  if (created) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-xl border bg-card p-5 text-center">
+          <p className="text-sm text-muted-foreground">تم تسجيل</p>
+          <p className="mt-1 text-xl font-semibold">{created.name}</p>
+          <p className="mt-5 text-sm text-muted-foreground">كود الدخول</p>
+          <p className="num mt-1 text-4xl font-bold tracking-[0.3em] text-primary">{created.studentCode}</p>
+          <Button variant="secondary" className="mt-4" onClick={copy}>
+            {copied ? <Check /> : <Copy />}
+            {copied ? "تم النسخ" : "نسخ الكود"}
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+          <p className="mt-4 text-sm text-muted-foreground">أعطِ هذا الكود للمخدوم ليدخل به.</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button className="flex-1" onClick={() => setCreated(null)}>إضافة مخدوم آخر</Button>
+          <Button variant="outline" asChild>
+            <Link href="/students-list">عرض الكشوفات</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="name">اسم المخدوم</Label>
+        <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="الاسم بالعربية" autoComplete="off" required disabled={loading} />
+      </div>
+      <div className="space-y-2">
+        <Label>الفصل</Label>
+        <Select value={form.studentClass} onValueChange={(v) => setForm({ ...form, studentClass: v })} disabled={loading}>
+          <SelectTrigger dir="rtl"><SelectValue placeholder="اختر الفصل" /></SelectTrigger>
+          <SelectContent>
+            {CLASSES.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone">رقم الموبايل <span className="font-normal text-muted-foreground">(اختياري)</span></Label>
+        <Input id="phone" inputMode="tel" dir="ltr" className="num" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="01012345678" maxLength={11} disabled={loading} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="address">العنوان <span className="font-normal text-muted-foreground">(اختياري)</span></Label>
+        <Input id="address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} disabled={loading} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="notes">ملاحظات <span className="font-normal text-muted-foreground">(اختياري)</span></Label>
+        <Textarea id="notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} disabled={loading} />
+      </div>
+      <Button type="submit" size="lg" className="w-full" disabled={loading}>
+        {loading ? <Loader2 className="animate-spin" /> : null}
+        حفظ وإصدار الكود
+      </Button>
+    </form>
   )
 }

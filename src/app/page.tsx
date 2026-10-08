@@ -1,18 +1,30 @@
 "use client"
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ModeToggle } from "@/components/mode-toggle"
 import { handleLogin, loginStudent } from "@/app/actions/auth"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
+import { SERVER_UNREACHABLE } from "@/lib/messages"
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [studentLoading, setStudentLoading] = useState(false)
   const { toast } = useToast()
+
+  // A successful login redirects, so the action resolves with no result.
+  // If we are still on the login page a moment later, the server never answered properly.
+  const failIfStillHere = (setBusy: (busy: boolean) => void) => {
+    window.setTimeout(() => {
+      if (window.location.pathname === "/") {
+        toast({ variant: "destructive", title: "خطأ", description: SERVER_UNREACHABLE })
+        setBusy(false)
+      }
+    }, 4000)
+  }
 
   const onAdminSubmit = async (formData: FormData) => {
     setLoading(true)
@@ -20,6 +32,8 @@ export default function LoginPage() {
     if (result?.error) {
       toast({ variant: "destructive", title: "خطأ", description: result.error })
       setLoading(false)
+    } else if (!result) {
+      failIfStillHere(setLoading)
     }
   }
 
@@ -29,80 +43,71 @@ export default function LoginPage() {
     if (result?.error) {
       toast({ variant: "destructive", title: "خطأ", description: result.error })
       setStudentLoading(false)
+    } else if (!result) {
+      failIfStillHere(setStudentLoading)
     }
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] space-y-8 px-4 text-center">
-      <div className="space-y-4">
-        <h1 className="text-3xl md:text-5xl font-black text-primary leading-tight">
-          أسرة مارمينا والبابا كيرلس
-          <br />
-          <span className="text-secondary">مرحلة إعدادي</span>
-        </h1>
-        <p className="text-lg text-muted-foreground font-medium">نظام إدارة الحضور والنقاط</p>
+    <div className="min-h-dvh">
+      <div className="absolute left-2 top-2">
+        <ModeToggle />
       </div>
 
-      <Tabs defaultValue="student" className="w-full max-w-md">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="student" className="text-base">دخول المخدومين</TabsTrigger>
-          <TabsTrigger value="admin" className="text-base">دخول الخدام</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="student">
-          <Card className="shadow-xl border-primary/20">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-primary">أهلاً بك!</CardTitle>
-              <CardDescription>أدخل الكود السري الخاص بك لتعرف نقاطك ومكافآتك</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={onStudentSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="code" className="text-lg">كود المخدوم (5 أرقام)</Label>
-                  <Input 
-                    id="code" 
-                    name="code" 
-                    placeholder="مثال: 49201" 
-                    required 
-                    dir="ltr" 
-                    className="text-center text-2xl tracking-widest font-bold h-14"
-                    maxLength={5}
-                  />
-                </div>
-                <Button type="submit" className="w-full h-12 text-lg" disabled={studentLoading}>
-                  {studentLoading ? <Loader2 className="h-5 w-5 animate-spin ml-2" /> : null}
-                  تسجيل الدخول
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-5 py-12">
+        <header className="mb-8">
+          <p className="text-sm font-medium text-primary">أسرة مارمينا والبابا كيرلس</p>
+          <h1 className="mt-1 text-2xl font-semibold leading-tight">نظام نقاط مرحلة إعدادي</h1>
+        </header>
 
-        <TabsContent value="admin">
-          <Card className="shadow-xl border-primary/20">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-primary">دخول الخدام</CardTitle>
-              <CardDescription>أدخل بيانات الحساب الخاص بك</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={onAdminSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">اسم المستخدم</Label>
-                  <Input id="username" name="username" placeholder="أدخل اسم المستخدم" required dir="ltr" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">كلمة المرور</Label>
-                  <Input id="password" name="password" type="password" placeholder="أدخل كلمة المرور" required dir="ltr" />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
-                  دخول
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <Tabs defaultValue="student">
+          <TabsList>
+            <TabsTrigger value="student">المخدومين</TabsTrigger>
+            <TabsTrigger value="admin">الخدام</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="student">
+            <form action={onStudentSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="code">كودك المكون من 5 أرقام</Label>
+                <Input
+                  id="code"
+                  name="code"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  maxLength={5}
+                  required
+                  dir="ltr"
+                  placeholder="• • • • •"
+                  className="num h-14 text-center text-2xl font-semibold tracking-[0.4em]"
+                />
+              </div>
+              <Button type="submit" size="lg" className="w-full" disabled={studentLoading}>
+                {studentLoading ? <Loader2 className="animate-spin" /> : null}
+                دخول
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="admin">
+            <form action={onAdminSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="username">اسم المستخدم</Label>
+                <Input id="username" name="username" autoComplete="username" required dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">كلمة المرور</Label>
+                <Input id="password" name="password" type="password" autoComplete="current-password" required dir="ltr" />
+              </div>
+              <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" /> : null}
+                دخول
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   )
 }

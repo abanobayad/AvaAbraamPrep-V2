@@ -8,56 +8,58 @@ import { getRequestContext } from "@cloudflare/next-on-pages";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
 
-async function checkRateLimit(keys: string[], limit: number) {
-  const prisma = getPrisma(getRequestContext().env as any);
-  
-  for (const key of keys) {
-    const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
-    
-    if (attempt) {
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+// Rate limiting is best effort: if the LoginAttempt table is missing or D1 fails,
+// log the problem and let the login proceed instead of taking the whole login down.
+async function checkRateLimit(keys: string[]) {
+  try {
+    const prisma = getPrisma(getRequestContext().env as any);
+    for (const key of keys) {
+      const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
+      if (!attempt) continue;
       if (attempt.lockedUntil && attempt.lockedUntil > new Date()) {
         return { locked: true, error: "محاولات كثيرة، حاول بعد 15 دقيقة" };
       }
-      
-      // Reset if window passed (15 mins)
-      if (new Date().getTime() - attempt.windowStart.getTime() > 15 * 60 * 1000) {
+      if (Date.now() - attempt.windowStart.getTime() > RATE_LIMIT_WINDOW_MS) {
         await prisma.loginAttempt.update({
           where: { key },
-          data: { count: 1, windowStart: new Date(), lockedUntil: null }
+          data: { count: 0, windowStart: new Date(), lockedUntil: null }
         });
       }
     }
+  } catch (e) {
+    console.error("Rate limit check failed (is the LoginAttempt table migrated?)", e);
   }
   return { locked: false };
 }
 
 async function incrementRateLimit(keys: string[], limit: number) {
-  const prisma = getPrisma(getRequestContext().env as any);
-  
-  for (const key of keys) {
-    const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
-    if (attempt) {
-      const newCount = attempt.count + 1;
-      const lockedUntil = newCount >= limit ? new Date(Date.now() + 15 * 60 * 1000) : null;
-      
-      await prisma.loginAttempt.update({
-        where: { key },
-        data: { count: newCount, lockedUntil }
-      });
-    } else {
-      await prisma.loginAttempt.create({
-        data: { key, count: 1 }
-      });
+  try {
+    const prisma = getPrisma(getRequestContext().env as any);
+    for (const key of keys) {
+      const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
+      if (attempt) {
+        const newCount = attempt.count + 1;
+        const lockedUntil = newCount >= limit ? new Date(Date.now() + RATE_LIMIT_WINDOW_MS) : null;
+        await prisma.loginAttempt.update({ where: { key }, data: { count: newCount, lockedUntil } });
+      } else {
+        await prisma.loginAttempt.create({ data: { key, count: 1 } });
+      }
     }
+  } catch (e) {
+    console.error("Rate limit increment failed", e);
   }
 }
 
 async function resetRateLimit(keys: string[]) {
-  const prisma = getPrisma(getRequestContext().env as any);
-  for (const key of keys) {
-    try {
-      await prisma.loginAttempt.delete({ where: { key } });
-    } catch (e) {} // ignore if not exists
+  try {
+    const prisma = getPrisma(getRequestContext().env as any);
+    for (const key of keys) {
+      await prisma.loginAttempt.deleteMany({ where: { key } });
+    }
+  } catch (e) {
+    console.error("Rate limit reset failed", e);
   }
 }
 
@@ -69,7 +71,7 @@ export async function handleLogin(formData: FormData) {
   const ip = headers().get("cf-connecting-ip") || headers().get("x-forwarded-for") || "unknown";
   
   const rlKeys = [`staff:ip:${ip}`, `staff:user:${username}`];
-  const rlCheck = await checkRateLimit(rlKeys, 5);
+  const rlCheck = await checkRateLimit(rlKeys);
   if (rlCheck.locked) return { error: rlCheck.error };
 
   if (!username || !password) {
@@ -146,7 +148,7 @@ export async function loginStudent(formData: FormData) {
   const ip = headers().get("cf-connecting-ip") || headers().get("x-forwarded-for") || "unknown";
   
   const rlKeys = [`student:ip:${ip}`];
-  const rlCheck = await checkRateLimit(rlKeys, 10);
+  const rlCheck = await checkRateLimit(rlKeys);
   if (rlCheck.locked) return { error: rlCheck.error };
   if (!code) {
     await incrementRateLimit(rlKeys, 10);
