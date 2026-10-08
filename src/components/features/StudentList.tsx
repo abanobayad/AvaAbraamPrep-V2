@@ -1,4 +1,5 @@
 "use client"
+import { EFTEQAD_ENABLED } from "@/lib/features";
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -164,7 +165,7 @@ export function StudentList({ role = "student" }: { role?: string }) {
                             setStudents(students.map(s => s.id === updated.id ? updated : s));
                           }} 
                         />
-                        <EfteqadHistoryDialog studentId={student.id} studentName={student.name} />
+                        {EFTEQAD_ENABLED && <EfteqadHistoryDialog studentId={student.id} studentName={student.name} />}
                       </div>
                     </div>
                   )}

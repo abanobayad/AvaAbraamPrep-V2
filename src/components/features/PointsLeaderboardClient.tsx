@@ -10,13 +10,25 @@ import { awardPoints } from "@/app/actions/db";
 import { Loader2 } from "lucide-react";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
 
-const QUICK_BUTTONS = [
+const SPIRITUAL_BUTTONS = [
+  { label: "حضور قداس", value: 25, variant: "outline" },
+  { label: "تسبحة وعشية", value: 20, variant: "outline" },
+  { label: "طقس ألحان", value: 15, variant: "outline" },
+  { label: "مدارس الأحد", value: 15, variant: "outline" },
+  { label: "درس كتاب مقدس", value: 15, variant: "outline" },
+];
+
+const SPORT_BUTTONS = [
   { label: "دوري كورة", value: 10, variant: "outline" },
   { label: "دوري شطرنج", value: 15, variant: "outline" },
   { label: "دوري بلايستيشن", value: 15, variant: "outline" },
   { label: "دوري بينج بونج", value: 15, variant: "outline" },
+];
+
+const PENALTY_BUTTONS = [
   { label: "خصم سلوك", value: -5, variant: "destructive" },
 ];
+
 
 export function PointsLeaderboardClient({ initialStudents }: { initialStudents: any[] }) {
   const [students, setStudents] = useState(initialStudents);
@@ -134,17 +146,37 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
           <div className="space-y-6 mt-4">
             <div className="space-y-2">
               <Label className="text-muted-foreground">أزرار سريعة</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {QUICK_BUTTONS.map((btn) => (
-                  <Button 
-                    key={btn.label}
-                    variant={btn.variant as any} 
-                    disabled={loading}
-                    onClick={() => handleQuickButton(btn)}
-                  >
-                    {btn.label} ({btn.value > 0 ? `+${btn.value}` : btn.value})
-                  </Button>
-                ))}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-primary">إضافات روحية</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {SPIRITUAL_BUTTONS.map((btn) => (
+                      <Button key={btn.label} variant={btn.variant as any} disabled={loading} onClick={() => handleQuickButton(btn)} size="sm">
+                        {btn.label} (+{btn.value})
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-primary">إضافات نشاط</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {SPORT_BUTTONS.map((btn) => (
+                      <Button key={btn.label} variant={btn.variant as any} disabled={loading} onClick={() => handleQuickButton(btn)} size="sm">
+                        {btn.label} (+{btn.value})
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-destructive">خصومات</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PENALTY_BUTTONS.map((btn) => (
+                      <Button key={btn.label} variant={btn.variant as any} disabled={loading} onClick={() => handleQuickButton(btn)} size="sm">
+                        {btn.label} ({btn.value})
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

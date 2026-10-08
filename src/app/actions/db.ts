@@ -3,6 +3,7 @@
 import { getPrisma } from "@/lib/prisma";
 import { getRequestContext } from "@cloudflare/next-on-pages";
 import { revalidatePath } from "next/cache";
+import { EFTEQAD_ENABLED } from "@/lib/features";
 import { requireRole } from "@/lib/authz";
 import { hashPassword } from "@/lib/password";
 
@@ -79,12 +80,10 @@ export async function getKhodam() {
     await requireRole("superadmin");
     const prisma = getPrisma(getRequestContext().env as any);
     const result = await prisma.khadem.findMany({
-      where: { role: { not: 'student' } }
+      where: { role: { not: 'student' } },
+      select: { id: true, name: true, username: true, role: true, createdAt: true }
     });
-    const safeResult = result.map((k: any) => {
-      const { password, ...rest } = k;
-      return rest;
-    });
+    const safeResult = result;
     return { success: true, data: JSON.parse(JSON.stringify(safeResult)) };
   } catch (err: any) {
     console.error("Action Error:", err);
@@ -248,6 +247,7 @@ export async function addMedia(data: { title: string; url: string; type: string 
 export async function getEfteqadStudents() {
   try {
     await requireRole("superadmin", "admin");
+    if (!EFTEQAD_ENABLED) return { success: false, error: "الميزة غير متاحة حالياً" };
     const prisma = getPrisma(getRequestContext().env as any);
     const result = await prisma.student.findMany({
       where: { needsEfteqad: true },

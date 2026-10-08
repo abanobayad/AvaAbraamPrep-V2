@@ -3,7 +3,9 @@ import { verifyToken } from "@/services/auth";
 import { handleLogout } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, UserPlus, Users, Shield, Trophy, Award, PlaySquare, CalendarCheck, HeartHandshake } from "lucide-react";
+import { EFTEQAD_ENABLED } from "@/lib/features";
 import Link from "next/link";
+import { ChangeOwnPasswordDialog } from "@/components/features/ChangeOwnPasswordDialog";
 
 export default async function SuperadminDashboard() {
   const token = cookies().get("auth_token")?.value;
@@ -16,12 +18,15 @@ export default async function SuperadminDashboard() {
           <h1 className="text-3xl md:text-4xl font-bold text-primary">نظام حضور إعدادي</h1>
           <p className="text-muted-foreground mt-2">أهلاً بك، {session?.username} (سوبر أدمن)</p>
         </div>
-        <form action={handleLogout}>
+        <div className="flex gap-2">
+          <ChangeOwnPasswordDialog />
+          <form action={handleLogout}>
           <Button variant="outline" type="submit">
             <LogOut className="h-4 w-4 ml-2" />
             تسجيل خروج
           </Button>
         </form>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center justify-center gap-12 pt-8">
@@ -52,10 +57,10 @@ export default async function SuperadminDashboard() {
 
         
 
-        <Link href="/efteqad" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-emerald-500 group">
+        {EFTEQAD_ENABLED && (<Link href="/efteqad" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-emerald-500 group">
           <HeartHandshake className="h-12 w-12 mb-3 group-hover:animate-bounce" />
           <span className="font-bold text-lg text-center leading-tight">كشف الافتقاد</span>
-        </Link>
+        </Link>)}
       </div>
     </div>
   );

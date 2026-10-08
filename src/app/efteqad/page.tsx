@@ -4,7 +4,10 @@ import { verifyToken } from "@/services/auth";
 import { redirect } from "next/navigation";
 import { EfteqadClient } from "@/components/features/EfteqadClient";
 
+import { EFTEQAD_ENABLED } from "@/lib/features";
+
 export default async function EfteqadPage() {
+  if (!EFTEQAD_ENABLED) redirect("/");
   const token = cookies().get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
 

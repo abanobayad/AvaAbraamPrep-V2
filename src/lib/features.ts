@@ -1,0 +1,1 @@
+export const EFTEQAD_ENABLED = false;
