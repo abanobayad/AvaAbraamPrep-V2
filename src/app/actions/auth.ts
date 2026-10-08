@@ -101,7 +101,16 @@ export async function handleLogin(formData: FormData) {
     }
   } else {
     // Web Crypto PBKDF2 check
-    passwordMatch = await verifyPassword(password, user.password);
+    
+      try {
+        passwordMatch = await verifyPassword(password, user.password);
+      } catch (err: any) {
+        if (err.message === 'RESET_REQUIRED') {
+          return { error: 'يرجى طلب إعادة تعيين كلمة المرور من المشرف' };
+        }
+        throw err;
+      }
+
   }
 
   if (!passwordMatch) {
@@ -235,7 +244,16 @@ export async function changeOwnPassword(currentPass: string, newPass: string) {
     if (!user.password.startsWith("pbkdf2$")) {
       match = (user.password === currentPass);
     } else {
-      match = await verifyPassword(currentPass, user.password);
+      
+      try {
+        match = await verifyPassword(currentPass, user.password);
+      } catch (err: any) {
+        if (err.message === 'RESET_REQUIRED') {
+          return { success: false, error: 'يرجى طلب إعادة تعيين كلمة المرور من المشرف' };
+        }
+        throw err;
+      }
+
     }
 
     if (!match) return { success: false, error: "كلمة السر الحالية غير صحيحة" };
@@ -251,4 +269,16 @@ export async function changeOwnPassword(currentPass: string, newPass: string) {
     console.error(e);
     return { success: false, error: "حدث خطأ غير متوقع" };
   }
+}
+
+export async function measureHash() {
+  const session = await requireRole("superadmin");
+  const { hashPassword } = await import('@/lib/password');
+  const results: Record<number, number> = {};
+  for (const iters of [10000, 5000, 2000]) {
+    const start = Date.now();
+    await hashPassword('testpass', iters);
+    results[iters] = Date.now() - start;
+  }
+  return results;
 }

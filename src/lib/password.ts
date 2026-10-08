@@ -1,4 +1,5 @@
-const ITERATIONS = 100000;
+export const PBKDF2_ITERATIONS = 1000;
+export const MAX_VERIFY_ITERATIONS = 5000;
 const HASH_BYTES = 32;
 const SALT_BYTES = 16;
 const ALG = "PBKDF2";
@@ -22,8 +23,9 @@ function base64ToArrayBuffer(base64: string) {
   return bytes.buffer;
 }
 
-export async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string, customIters?: number): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
+  const iters = customIters || PBKDF2_ITERATIONS;
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -36,7 +38,7 @@ export async function hashPassword(password: string): Promise<string> {
     {
       name: ALG,
       salt: salt,
-      iterations: ITERATIONS,
+      iterations: iters,
       hash: DIGEST,
     },
     keyMaterial,
@@ -46,7 +48,7 @@ export async function hashPassword(password: string): Promise<string> {
   const saltB64 = arrayBufferToBase64(salt.buffer as ArrayBuffer);
   const hashB64 = arrayBufferToBase64(hashBuffer);
 
-  return `pbkdf2$${ITERATIONS}$${saltB64}$${hashB64}`;
+  return `pbkdf2$${iters}$${saltB64}$${hashB64}`;
 }
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
@@ -58,6 +60,10 @@ export async function verifyPassword(password: string, stored: string): Promise<
   if (parts.length !== 4) return false;
   
   const iterations = parseInt(parts[1], 10);
+  if (iterations > MAX_VERIFY_ITERATIONS) {
+    throw new Error("RESET_REQUIRED");
+  }
+  
   const saltB64 = parts[2];
   const storedHashB64 = parts[3];
 
@@ -83,7 +89,6 @@ export async function verifyPassword(password: string, stored: string): Promise<
     HASH_BYTES * 8
   );
 
-  // Constant time comparison
   const a = new Uint8Array(hashBuffer);
   const b = new Uint8Array(storedHashBuffer);
   if (a.length !== b.length) return false;
