@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Khadem } from "@prisma/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ function ChangePasswordDialog({ khademId, khademName }: { khademId: string, khad
   const [loading, setLoading] = useState(false);
   const [successPass, setSuccessPass] = useState("");
   const { toast } = useToast();
-  const router = useRouter();
 
   const handleGenerate = () => {
     const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -97,12 +97,10 @@ function ChangePasswordDialog({ khademId, khademName }: { khademId: string, khad
 
 export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] }) {
   const [khodam, setKhodam] = useState(initialKhodam);
-
-  useEffect(() => {
-    setKhodam(initialKhodam);
-  }, [initialKhodam]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
+  useEffect(() => { setKhodam(initialKhodam); }, [initialKhodam]);
 
   const [formData, setFormData] = useState({ name: "", username: "", password: "", role: "admin" as Khadem["role"] });
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation";
 import { Student } from "@prisma/client"
 import { logEfteqad } from "@/app/actions/db"
 import { Button } from "@/components/ui/button"
