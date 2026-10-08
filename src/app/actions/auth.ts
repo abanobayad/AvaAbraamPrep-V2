@@ -1,20 +1,80 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { createToken } from "@/services/auth"
 import { redirect } from "next/navigation"
 import { getPrisma } from "@/lib/prisma";
 import { getRequestContext } from "@cloudflare/next-on-pages";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
+
+async function checkRateLimit(keys: string[], limit: number) {
+  const prisma = getPrisma(getRequestContext().env as any);
+  
+  for (const key of keys) {
+    const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
+    
+    if (attempt) {
+      if (attempt.lockedUntil && attempt.lockedUntil > new Date()) {
+        return { locked: true, error: "محاولات كثيرة، حاول بعد 15 دقيقة" };
+      }
+      
+      // Reset if window passed (15 mins)
+      if (new Date().getTime() - attempt.windowStart.getTime() > 15 * 60 * 1000) {
+        await prisma.loginAttempt.update({
+          where: { key },
+          data: { count: 1, windowStart: new Date(), lockedUntil: null }
+        });
+      }
+    }
+  }
+  return { locked: false };
+}
+
+async function incrementRateLimit(keys: string[], limit: number) {
+  const prisma = getPrisma(getRequestContext().env as any);
+  
+  for (const key of keys) {
+    const attempt = await prisma.loginAttempt.findUnique({ where: { key } });
+    if (attempt) {
+      const newCount = attempt.count + 1;
+      const lockedUntil = newCount >= limit ? new Date(Date.now() + 15 * 60 * 1000) : null;
+      
+      await prisma.loginAttempt.update({
+        where: { key },
+        data: { count: newCount, lockedUntil }
+      });
+    } else {
+      await prisma.loginAttempt.create({
+        data: { key, count: 1 }
+      });
+    }
+  }
+}
+
+async function resetRateLimit(keys: string[]) {
+  const prisma = getPrisma(getRequestContext().env as any);
+  for (const key of keys) {
+    try {
+      await prisma.loginAttempt.delete({ where: { key } });
+    } catch (e) {} // ignore if not exists
+  }
+}
+
 export async function handleLogin(formData: FormData) {
   const prisma = getPrisma(getRequestContext().env as any);
 
   const username = formData.get("username") as string
   const password = formData.get("password") as string
+  const ip = headers().get("cf-connecting-ip") || headers().get("x-forwarded-for") || "unknown";
+  
+  const rlKeys = [`staff:ip:${ip}`, `staff:user:${username}`];
+  const rlCheck = await checkRateLimit(rlKeys, 5);
+  if (rlCheck.locked) return { error: rlCheck.error };
 
   if (!username || !password) {
-    return { error: "الرجاء إدخال اسم المستخدم وكلمة المرور" }
+    await incrementRateLimit(rlKeys, 5);
+    return { error: "بيانات الدخول غير صحيحة" };
   }
 
   // Use Prisma for auth
@@ -23,7 +83,8 @@ export async function handleLogin(formData: FormData) {
   })
   
   if (!user) {
-    return { error: "بيانات الدخول غير صحيحة" }
+    await incrementRateLimit(rlKeys, 5);
+    return { error: "بيانات الدخول غير صحيحة" };
   }
 
   let passwordMatch = false;
@@ -44,9 +105,11 @@ export async function handleLogin(formData: FormData) {
   }
 
   if (!passwordMatch) {
-    return { error: "بيانات الدخول غير صحيحة" }
+    await incrementRateLimit(rlKeys, 5);
+    return { error: "بيانات الدخول غير صحيحة" };
   }
 
+  await resetRateLimit(rlKeys);
   const token = await createToken({
     id: user.id,
     username: user.username,
@@ -80,14 +143,26 @@ export async function loginStudent(formData: FormData) {
   const prisma = getPrisma(getRequestContext().env as any);
 
   const code = formData.get('code') as string;
-  if (!code) return { error: 'الرجاء إدخال الكود' };
+  const ip = headers().get("cf-connecting-ip") || headers().get("x-forwarded-for") || "unknown";
+  
+  const rlKeys = [`student:ip:${ip}`];
+  const rlCheck = await checkRateLimit(rlKeys, 10);
+  if (rlCheck.locked) return { error: rlCheck.error };
+  if (!code) {
+    await incrementRateLimit(rlKeys, 10);
+    return { error: "الكود غير صحيح" };
+  }
 
   const student = await prisma.student.findUnique({
     where: { studentCode: code }
   });
 
-  if (!student) return { error: 'كود غير صحيح' };
+  if (!student) {
+    await incrementRateLimit(rlKeys, 10);
+    return { error: "الكود غير صحيح" };
+  }
 
+  await resetRateLimit(rlKeys);
   const token = await createToken({
     id: student.id,
     username: student.name,

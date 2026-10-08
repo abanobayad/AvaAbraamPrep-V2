@@ -72,3 +72,10 @@ model EfteqadLog {
   notes      String?
 }
 
+
+model LoginAttempt {
+  key         String    @id
+  count       Int       @default(1)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+}
