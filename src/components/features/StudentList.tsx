@@ -21,7 +21,8 @@ import {
 export function StudentList({ role = "student" }: { role?: string }) {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
+  const { toast } = useToast();
+  const router = useRouter();
   
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState<string>("")
@@ -31,7 +32,7 @@ export function StudentList({ role = "student" }: { role?: string }) {
     setLoading(true)
     try {
       const res = await getStudents();
-      if (res.success) {
+      if (res?.success) {
         setStudents(res.data);
       }
     } catch (err) {
@@ -53,10 +54,11 @@ export function StudentList({ role = "student" }: { role?: string }) {
     setDeleting(true);
     try {
       const res = await deleteStudent(deleteId);
-      if (!res.success) {
-        throw new Error(res.error);
+      if (!res?.success) {
+        throw new Error(res?.error);
       }
       setStudents(prev => prev.filter(s => s.id !== deleteId));
+      router.refresh();
       toast({ title: "تم الحذف", description: "تم حذف الطالب بنجاح", className: "bg-success text-white" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });

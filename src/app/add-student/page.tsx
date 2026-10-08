@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { AddStudentForm } from "@/components/features/AddStudentForm";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";

@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -32,6 +32,10 @@ const PENALTY_BUTTONS = [
 
 export function PointsLeaderboardClient({ initialStudents }: { initialStudents: any[] }) {
   const [students, setStudents] = useState(initialStudents);
+
+  useEffect(() => {
+    setStudents(initialStudents);
+  }, [initialStudents]);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   
   const [isAwardDialogOpen, setIsAwardDialogOpen] = useState(false);
@@ -47,6 +51,7 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
   const [loading, setLoading] = useState(false);
   
   const { toast } = useToast();
+  const router = useRouter();
 
   const sortedStudents = [...students].sort((a, b) => {
     const ptsB = b.totalPoints || 0;
@@ -59,12 +64,13 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
     setLoading(true);
     try {
       const updatedStudent = await awardPoints(studentId, points, reason);
-      if (!updatedStudent.success) {
-        throw new Error(updatedStudent.error || 'Failed to award points');
+      if (!updatedStudent?.success) {
+        throw new Error(updatedStudent?.error || 'Failed to award points');
       }
       
       const finalStudent = updatedStudent.data;
       setStudents(prev => prev.map(s => s.id === studentId ? finalStudent : s));
+        router.refresh();
       
       toast({ title: "تم بنجاح", description: `تم حفظ النقاط (${reason})`, className: "bg-success text-white" });
       setCustomPoints("");

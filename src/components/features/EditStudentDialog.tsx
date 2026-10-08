@@ -15,6 +15,7 @@ export function EditStudentDialog({ student, onUpdated }: { student: Student, on
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   
   const [formData, setFormData] = useState({
     name: student.name,
@@ -29,13 +30,13 @@ export function EditStudentDialog({ student, onUpdated }: { student: Student, on
     setLoading(true);
     try {
       const res = await updateStudent(student.id, formData);
-        if (!res || res.error || res.success === false) {
+        if (!res?.success) {
           throw new Error(res?.error || 'Failed to update student');
         }
         const updated = res.data || res;
       toast({ title: "تم التعديل", description: "تم تعديل بيانات المخدوم بنجاح", className: "bg-success text-white" });
       onUpdated(updated);
-      setOpen(false);
+      setOpen(false); router.refresh();
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });
     } finally {

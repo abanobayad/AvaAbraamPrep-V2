@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Khadem } from "@prisma/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ function ChangePasswordDialog({ khademId, khademName }: { khademId: string, khad
   const [loading, setLoading] = useState(false);
   const [successPass, setSuccessPass] = useState("");
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleGenerate = () => {
     const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -36,7 +37,7 @@ function ChangePasswordDialog({ khademId, khademName }: { khademId: string, khad
     setLoading(true);
     const res = await resetKhademPassword(khademId, newPass);
     setLoading(false);
-    if (res.success) {
+    if (res?.success) {
       setSuccessPass(newPass);
     } else {
       toast({ variant: "destructive", title: "خطأ", description: res.error });
@@ -96,6 +97,10 @@ function ChangePasswordDialog({ khademId, khademName }: { khademId: string, khad
 
 export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] }) {
   const [khodam, setKhodam] = useState(initialKhodam);
+
+  useEffect(() => {
+    setKhodam(initialKhodam);
+  }, [initialKhodam]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -105,14 +110,14 @@ export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] 
     e.preventDefault();
     try {
       const response = await addKhadem(formData) as any;
-      if (!response || response.error) {
+      if (!response?.success) {
         throw new Error(response?.error || '500 Internal Server Error (Database connection issue)');
       }
       const newKhadem = response.data;
       if (!newKhadem || !newKhadem.name) {
         throw new Error('Invalid data returned');
       }
-      setKhodam([...khodam, newKhadem]);
+      setKhodam([...khodam, newKhadem]); router.refresh();
       setIsDialogOpen(false);
       toast({ title: "تم بنجاح", description: "تم إضافة الخادم بنجاح", className: "bg-success text-white" });
       setFormData({ name: "", username: "", password: "", role: "admin" });
@@ -124,10 +129,10 @@ export function ManageKhodamClient({ initialKhodam }: { initialKhodam: Khadem[] 
   const handleDelete = async (id: string) => {
     try {
       const res = await deleteKhadem(id);
-      if (!res || res.error || res.success === false) {
+      if (!res?.success) {
         throw new Error(res?.error || 'Failed to delete khadem');
       }
-      setKhodam(khodam.filter(k => k.id !== id));
+      setKhodam(khodam.filter(k => k.id !== id)); router.refresh();
       toast({ title: "تم بنجاح", description: "تم حذف الخادم بنجاح" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });

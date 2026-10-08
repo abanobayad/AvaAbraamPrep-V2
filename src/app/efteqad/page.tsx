@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getEfteqadStudents } from "@/app/actions/db";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/services/auth";

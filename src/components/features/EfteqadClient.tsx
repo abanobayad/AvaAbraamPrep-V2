@@ -17,7 +17,8 @@ export function EfteqadClient({ students: initialStudents, khademName }: { stude
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [notes, setNotes] = useState("")
   const [openDialogId, setOpenDialogId] = useState<string | null>(null)
-  const { toast } = useToast()
+  const { toast } = useToast();
+  const router = useRouter();
 
   const handleExportCSV = () => {
     const headers = ["الاسم", "الفصل", "رقم الموبايل", "العنوان", "ملاحظات"]
@@ -44,10 +45,10 @@ export function EfteqadClient({ students: initialStudents, khademName }: { stude
     setLoadingId(studentId)
     try {
       const res = await logEfteqad(studentId, khademName, notes);
-      if (!res || res.error || res.success === false) {
+      if (!res?.success) {
         throw new Error(res?.error || 'Failed to log efteqad');
       }
-      setStudents(students.filter(s => s.id !== studentId))
+      setStudents(students.filter(s => s.id !== studentId)); router.refresh();
       toast({
         title: "تم التسجيل",
         description: "تم تسجيل الافتقاد وإزالة المخدوم من القائمة.",

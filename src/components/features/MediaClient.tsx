@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Media } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,9 +13,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function MediaClient({ initialMedia, role }: { initialMedia: Media[], role: string }) {
   const [mediaList, setMediaList] = useState(initialMedia);
+
+  useEffect(() => {
+    setMediaList(initialMedia);
+  }, [initialMedia]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const [formData, setFormData] = useState({ title: "", url: "", type: "video" });
 
@@ -24,11 +29,11 @@ export function MediaClient({ initialMedia, role }: { initialMedia: Media[], rol
     setLoading(true);
     try {
       const res = await addMedia(formData);
-      if (!res || res.error || res.success === false) {
+      if (!res?.success) {
         throw new Error(res?.error || 'Failed to add media');
       }
       const newMedia = res.data || res;
-      setMediaList([newMedia, ...mediaList]);
+      setMediaList([newMedia, ...mediaList]); router.refresh();
       setIsDialogOpen(false);
       toast({ title: "تم بنجاح", description: "تم إضافة الميديا بنجاح", className: "bg-success text-white" });
       setFormData({ title: "", url: "", type: "video" });

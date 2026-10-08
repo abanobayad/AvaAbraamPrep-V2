@@ -11,7 +11,8 @@ import { addStudent } from "@/app/actions/db"
 import { Loader2 } from "lucide-react"
 
 export function AddStudentForm() {
-  const { toast } = useToast()
+  const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -40,11 +41,12 @@ export function AddStudentForm() {
     setLoading(true)
     try {
       const response = await addStudent(formData) as any;
-      if (!response || response.error) {
+      if (!response?.success) {
         throw new Error(response?.error || "حدث خطأ في قاعدة البيانات (500)");
       }
       toast({ variant: "default", className: "bg-success text-white", title: "تم بنجاح", description: "تمت إضافة المخدوم بنجاح" })
-      setFormData({ name: "", studentClass: "", phone: "", address: "", notes: "" })
+      setFormData({ name: "", studentClass: "", phone: "", address: "", notes: "" });
+        router.refresh();
       // Fire custom event to refresh list
       window.dispatchEvent(new Event("refresh-students"))
     } catch (err: any) {
