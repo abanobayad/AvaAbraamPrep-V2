@@ -20,17 +20,9 @@ export function StudentPortalClient({ students, currentStudentId }: { students: 
 
   let currentRank = 1;
   let prevPoints: number | null = null;
-  let rankOffset = 0;
   
   const rankedStudents = students.map((s, idx) => {
-    if (prevPoints !== null && s.totalPoints === prevPoints) {
-      rankOffset++;
-    } else {
-      currentRank += rankOffset;
-      if (prevPoints === null) currentRank = 1; 
-      else currentRank = idx + 1;
-      rankOffset = 0;
-    }
+    if (idx === 0 || s.totalPoints !== prevPoints) currentRank = idx + 1;
     prevPoints = s.totalPoints;
     return { ...s, rank: currentRank };
   });

@@ -29,7 +29,10 @@ export default async function StudentPortal() {
     );
   }
   
-  const sortedStudents = [...allStudents].sort((a: any, b: any) => b.totalPoints - a.totalPoints);
+  const sortedStudents = [...allStudents].sort((a: any, b: any) => {
+    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    return a.name.localeCompare(b.name, 'ar');
+  });
 
   return (
     <div className="max-w-5xl mx-auto space-y-12 pt-6">

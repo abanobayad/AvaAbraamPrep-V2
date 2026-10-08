@@ -2,6 +2,7 @@
 
 import { getPrisma } from "@/lib/prisma";
 import { getRequestContext } from "@cloudflare/next-on-pages";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/authz";
 import { hashPassword } from "@/lib/password";
 
@@ -141,21 +142,28 @@ export async function awardPoints(studentId: string, points: number, actionName:
     const env = getRequestContext().env as any;
     const db = env.DB;
 
-    const studentCheck = await db.prepare('SELECT id, name, studentClass, totalPoints FROM "Student" WHERE id = ?').bind(studentId).first();
+    const studentCheck = await db.prepare('SELECT id, name, studentClass FROM "Student" WHERE id = ?').bind(studentId).first();
     if (!studentCheck) {
       return { success: false, error: "الطالب غير موجود" };
     }
 
     const txId = 'c' + crypto.randomUUID().replace(/-/g, '').substring(0, 24);
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toISOString().replace('Z', '+00:00');
 
     const insertTx = db.prepare('INSERT INTO "Transaction" (id, studentId, actionName, pointsChanged, addedBy, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
       .bind(txId, studentId, actionName, points, addedBy, timestamp);
     
-    const updateStudent = db.prepare('UPDATE "Student" SET totalPoints = totalPoints + ?, updatedAt = ? WHERE id = ?')
+    const updateStudent = db.prepare('UPDATE "Student" SET totalPoints = totalPoints + ?, updatedAt = ? WHERE id = ? RETURNING totalPoints')
       .bind(points, timestamp, studentId);
       
-    await db.batch([insertTx, updateStudent]);
+    const batchResults = await db.batch([insertTx, updateStudent]);
+    const updatedTotal = batchResults[1].results[0].totalPoints;
+
+    try {
+      revalidatePath("/students-list");
+      revalidatePath("/points-leaderboard");
+      revalidatePath("/student-portal");
+    } catch(e) {}
 
     return { 
       success: true, 
@@ -163,7 +171,7 @@ export async function awardPoints(studentId: string, points: number, actionName:
         id: studentCheck.id, 
         name: studentCheck.name, 
         studentClass: studentCheck.studentClass, 
-        totalPoints: studentCheck.totalPoints + points 
+        totalPoints: updatedTotal 
       } 
     };
   } catch (err: any) {
@@ -314,6 +322,11 @@ export async function deleteStudent(studentId: string) {
     const env = getRequestContext().env as any;
     const db = env.DB;
 
+    const studentCheck = await db.prepare('SELECT id FROM "Student" WHERE id = ?').bind(studentId).first();
+    if (!studentCheck) {
+      return { success: false, error: "الطالب غير موجود" };
+    }
+
     const delTransactions = db.prepare('DELETE FROM "Transaction" WHERE studentId = ?').bind(studentId);
     const delAttendance = db.prepare('DELETE FROM "Attendance" WHERE studentId = ?').bind(studentId);
     const delEfteqad = db.prepare('DELETE FROM "EfteqadLog" WHERE studentId = ?').bind(studentId);
@@ -321,9 +334,16 @@ export async function deleteStudent(studentId: string) {
 
     await db.batch([delTransactions, delAttendance, delEfteqad, delStudent]);
 
+    try {
+      revalidatePath("/students-list");
+      revalidatePath("/points-leaderboard");
+      revalidatePath("/student-portal");
+    } catch(e) {}
+
     return { success: true, data: null };
   } catch (err: any) {
     console.error("Action Error:", err);
     return { success: false, error: "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى." };
   }
 }
+

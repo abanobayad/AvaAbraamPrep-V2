@@ -36,7 +36,12 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
   
   const { toast } = useToast();
 
-  const sortedStudents = [...students].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+  const sortedStudents = [...students].sort((a, b) => {
+    const ptsB = b.totalPoints || 0;
+    const ptsA = a.totalPoints || 0;
+    if (ptsB !== ptsA) return ptsB - ptsA;
+    return a.name.localeCompare(b.name, 'ar');
+  });
 
   const handleAward = async (studentId: string, points: number, reason: string) => {
     setLoading(true);
@@ -96,7 +101,7 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
             <Label>سبب الخصم (اختياري)</Label>
             <Input 
               value={deductReason} 
-              onChange={e => setDeductReason(e.target.value)} 
+              onChange={e => setDeductReason(e.target.value)} maxLength={88}
               placeholder="مثال: شغب في الفصل..." 
               disabled={loading}
             />
@@ -154,7 +159,7 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
                 </div>
                 <div className="space-y-2">
                   <Label>السبب</Label>
-                  <Input value={customReason} onChange={e => setCustomReason(e.target.value)} placeholder="السبب..." required disabled={loading} />
+                  <Input value={customReason} onChange={e => setCustomReason(e.target.value)} maxLength={100} placeholder="السبب..." required disabled={loading} />
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
