@@ -1,39 +1,46 @@
 "use client"
-import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { Search, ChevronLeft, FileSpreadsheet, UserPlus } from "lucide-react"
-import { getStudents } from "@/app/actions/db"
-import { Input } from "@/components/ui/input"
+import { EFTEQAD_ENABLED } from "@/lib/features";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Chips } from "@/components/ui/chips"
-import { List, ListButton, ListSkeleton, EmptyState } from "@/components/ui/list"
+import { RefreshCcw, User, Phone, MapPin, FileText, Trash2, Loader2 } from "lucide-react"
+import { Student } from "@prisma/client"
+import { getStudents, deleteStudent } from "@/app/actions/db"
+import { EditStudentDialog } from "./EditStudentDialog"
+import { EfteqadHistoryDialog } from "./EfteqadHistoryDialog"
 import { useToast } from "@/components/ui/use-toast"
-import { SERVER_UNREACHABLE } from "@/lib/messages"
-import { CLASSES } from "@/config/classes"
-import { csvCell } from "@/lib/csv"
-import { StudentSheet, type StudentRow } from "./StudentSheet"
+import { SERVER_UNREACHABLE } from "@/lib/messages";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
-type ClassFilter = "الكل" | (typeof CLASSES)[number]
-
-const FILTERS: { value: ClassFilter; label: string }[] = [
-  { value: "الكل", label: "الكل" },
-  ...CLASSES.map((c) => ({ value: c, label: c })),
-]
-
-export function StudentList() {
-  const [students, setStudents] = useState<StudentRow[]>([])
+export function StudentList({ role = "student" }: { role?: string }) {
+  const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState("")
-  const [cls, setCls] = useState<ClassFilter>("الكل")
-  const [selected, setSelected] = useState<StudentRow | null>(null)
-  const { toast } = useToast()
+  const { toast } = useToast();
+  const router = useRouter();
+  
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteName, setDeleteName] = useState<string>("")
+  const [deleting, setDeleting] = useState(false)
 
   const fetchStudents = async () => {
     setLoading(true)
     try {
-      const res = await getStudents()
-      if (res?.success) setStudents(res.data)
-      else toast({ variant: "destructive", title: "خطأ", description: res?.error || SERVER_UNREACHABLE })
+      const res = await getStudents();
+      if (res?.success) {
+        setStudents(res.data);
+      } else {
+        toast({ variant: "destructive", title: "خطأ", description: res?.error || SERVER_UNREACHABLE });
+      }
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -44,106 +51,136 @@ export function StudentList() {
     const handleRefresh = () => fetchStudents()
     window.addEventListener("refresh-students", handleRefresh)
     return () => window.removeEventListener("refresh-students", handleRefresh)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const filtered = useMemo(() => {
-    const q = query.trim()
-    return students
-      .filter((s) => cls === "الكل" || s.studentClass === cls)
-      .filter((s) => !q || s.name.includes(q) || (s.studentCode ?? "").includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name, "ar"))
-  }, [students, query, cls])
-
-  const exportCsv = () => {
-    if (filtered.length === 0) {
-      toast({ variant: "destructive", title: "لا يوجد ما يُصدَّر", description: "القائمة الحالية فارغة." })
-      return
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await deleteStudent(deleteId);
+      if (!res?.success) {
+        throw new Error(res?.error || SERVER_UNREACHABLE);
+      }
+      setStudents(prev => prev.filter(s => s.id !== deleteId));
+      router.refresh();
+      toast({ title: "تم الحذف", description: "تم حذف الطالب بنجاح", className: "bg-success text-white" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "خطأ", description: err.message });
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
-    const rows = [
-      ["الاسم", "الفصل", "الكود", "رقم الموبايل", "العنوان", "الملاحظات"].join(","),
-      ...filtered.map((s) => [s.name, s.studentClass, s.studentCode ?? "", s.phone, s.address, s.notes].map(csvCell).join(",")),
-    ]
-    const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `كشف_${cls}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
-        <Search className="pointer-events-none absolute end-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="ابحث بالاسم أو الكود"
-          aria-label="بحث"
-          className="pe-11"
-        />
+    <div className="space-y-4 mt-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-primary">قائمة الطلاب</h2>
+        <Button variant="outline" onClick={fetchStudents} disabled={loading}>
+          <RefreshCcw className={`h-4 w-4 ml-2 ${loading ? 'animate-spin' : ''}`} />
+          تحديث
+        </Button>
       </div>
 
-      <Chips value={cls} onChange={setCls} options={FILTERS} label="الفصل" />
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && !deleting && setDeleteId(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من حذف {deleteName}؟ سيتم حذف كل نقاطه وبياناته نهائياً.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-2 sm:justify-start">
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Trash2 className="h-4 w-4 ml-2" />}
+              حذف نهائي
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteId(null)} disabled={deleting}>
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
-        <ListSkeleton rows={6} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1,2,3].map(i => (
+            <Card key={i} className="animate-pulse h-64 bg-muted/50 border-0" />
+          ))}
+        </div>
       ) : students.length === 0 ? (
-        <EmptyState
-          title="لا يوجد مخدومين بعد"
-          hint="ابدأ بإضافة أول مخدوم وسيظهر هنا."
-          action={
-            <Button asChild variant="secondary">
-              <Link href="/add-student">
-                <UserPlus />
-                إضافة مخدوم
-              </Link>
-            </Button>
-          }
-        />
-      ) : filtered.length === 0 ? (
-        <EmptyState title="لا توجد نتائج" hint="جرّب اسمًا آخر أو غيّر الفصل." />
+        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-card">
+          لا يوجد طلاب مسجلين حتى الآن
+        </div>
       ) : (
-        <>
-          <p className="px-1 text-sm text-muted-foreground">
-            <span className="num">{filtered.length}</span> مخدوم
-          </p>
-          <List>
-            {filtered.map((s) => (
-              <ListButton key={s.id} onClick={() => setSelected(s)}>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{s.name}</span>
-                  <span className="block text-sm text-muted-foreground">{s.studentClass}</span>
-                </span>
-                <span className="num text-sm text-muted-foreground">{s.studentCode}</span>
-                <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground/60" />
-              </ListButton>
-            ))}
-          </List>
-          <Button variant="outline" className="w-full" onClick={exportCsv}>
-            <FileSpreadsheet />
-            تصدير الكشف الحالي (CSV)
-          </Button>
-        </>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {students.map(student => (
+            <Card key={student.id} className="overflow-hidden hover:shadow-md transition-shadow relative">
+              <CardContent className="p-0">
+                <div className="bg-primary/5 p-4 border-b border-border relative">
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold text-lg">{student.name}</h3>
+                  </div>
+                  <span className="inline-block mt-2 text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    {student.studentClass}
+                  </span>
+                  {role !== "student" && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 left-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        setDeleteId(student.id);
+                        setDeleteName(student.name);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="p-4 space-y-3 text-sm">
+                  {student.phone && (
+                    <div className="flex items-start gap-2 text-muted-foreground">
+                      <Phone className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span dir="ltr">{student.phone}</span>
+                    </div>
+                  )}
+                  {student.address && (
+                    <div className="flex items-start gap-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{student.address}</span>
+                    </div>
+                  )}
+                  {student.notes && (
+                    <div className="flex items-start gap-2 text-muted-foreground bg-muted/50 p-2 rounded border border-dashed">
+                      <FileText className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span>{student.notes}</span>
+                    </div>
+                  )}
+                  
+                  {role !== "student" && (
+                    <div className="w-full mt-4 pt-4 border-t border-border flex flex-col items-center">
+                      <span className="text-sm font-bold text-primary mb-2 tracking-widest bg-primary/10 px-3 py-1 rounded">
+                        كود الدخول: {student.studentCode}
+                      </span>
+                      <div className="w-full mt-2 flex flex-col gap-2">
+                        <EditStudentDialog 
+                          student={student} 
+                          onUpdated={(updated) => {
+                            setStudents(students.map(s => s.id === updated.id ? updated : s));
+                          }} 
+                        />
+                        {EFTEQAD_ENABLED && <EfteqadHistoryDialog studentId={student.id} studentName={student.name} />}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
-
-      <StudentSheet
-        student={selected}
-        onOpenChange={(open) => !open && setSelected(null)}
-        onUpdated={(u) => {
-          setStudents((prev) => prev.map((s) => (s.id === u.id ? { ...s, ...u } : s)))
-          setSelected((cur) => (cur && cur.id === u.id ? { ...cur, ...u } : cur))
-        }}
-        onDeleted={(id) => {
-          setStudents((prev) => prev.filter((s) => s.id !== id))
-          setSelected(null)
-        }}
-      />
     </div>
   )
 }

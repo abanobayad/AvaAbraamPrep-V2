@@ -1,92 +1,100 @@
 "use client"
-import { useMemo, useState } from "react"
-import Link from "next/link"
-import { History, PlaySquare } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { List, ListItem } from "@/components/ui/list"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
-import { TransactionHistoryList } from "./TransactionHistoryList"
+import { useState } from "react";
+import { Student } from "@prisma/client";
+import { Award } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
+import { useToast } from "@/components/ui/use-toast";
 
-type Row = { id: string; name: string; studentClass: string; totalPoints: number }
-type Me = { id: string; name: string; totalPoints: number; updatedAt?: string | null }
+export function StudentPortalClient({ students, currentStudentId }: { students: Student[], currentStudentId: string | undefined }) {
+  const [historyStudent, setHistoryStudent] = useState<Student | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const { toast } = useToast();
 
-export function StudentPortalClient({ me, fallbackName, students }: { me: Me | null; fallbackName: string; students: Row[] }) {
-  const [historyOpen, setHistoryOpen] = useState(false)
+  let currentRank = 1;
+  let prevPoints: number | null = null;
+  
+  const rankedStudents = students.map((s, idx) => {
+    if (idx === 0 || s.totalPoints !== prevPoints) currentRank = idx + 1;
+    prevPoints = s.totalPoints;
+    return { ...s, rank: currentRank };
+  });
 
-  const ranked = useMemo(() => {
-    const sorted = [...students].sort((a, b) => (b.totalPoints - a.totalPoints) || a.name.localeCompare(b.name, "ar"))
-    let rank = 0
-    let prev: number | null = null
-    return sorted.map((s, i) => {
-      if (prev === null || s.totalPoints !== prev) rank = i + 1
-      prev = s.totalPoints
-      return { ...s, rank }
-    })
-  }, [students])
-
-  const mine = me ? ranked.find((s) => s.id === me.id) : undefined
-  const points = me?.totalPoints ?? 0
+  const myStudent = rankedStudents.find(s => s.id === currentStudentId);
 
   return (
-    <div className="space-y-8">
-      <section className="text-center">
-        <p className="text-sm text-muted-foreground">أهلاً، {me?.name || fallbackName}</p>
-        <p className={cn("num mt-2 text-6xl font-bold leading-none tracking-tight", points < 0 ? "text-destructive" : "text-foreground")}>{points}</p>
-        <p className="mt-2 text-sm text-muted-foreground">نقطة</p>
-        {mine ? (
-          <p className="mt-4 text-base">
-            ترتيبك <span className="num font-semibold">{mine.rank}</span> من <span className="num font-semibold">{ranked.length}</span>
-          </p>
-        ) : null}
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          {me ? (
-            <Button variant="secondary" onClick={() => setHistoryOpen(true)}>
-              <History />
-              سجل نقاطي
-            </Button>
-          ) : null}
-          <Button variant="outline" asChild>
-            <Link href="/media">
-              <PlaySquare />
-              الميديا
-            </Link>
-          </Button>
+    <div className="space-y-4">
+      <TransactionHistoryDialog 
+        student={historyStudent} 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+      />
+      
+      {myStudent && (
+        <div className="bg-primary text-primary-foreground p-6 rounded-lg text-center shadow-lg font-bold">
+          <h2 className="text-xl">ترتيبك: {myStudent.rank} من {rankedStudents.length}</h2>
+          <p className="text-3xl mt-2">{myStudent.totalPoints} نقطة</p>
         </div>
-      </section>
+      )}
 
-      <section className="space-y-3">
-        <h2 className="px-1 text-sm font-medium text-muted-foreground">لوحة الشرف · كل الفصول</h2>
-        <List>
-          {ranked.map((s) => {
-            const isMe = me?.id === s.id
-            return (
-              <ListItem key={s.id} className={cn(isMe && "bg-primary/10")}>
-                <span className={cn("num w-7 shrink-0 text-center text-sm", s.rank <= 3 ? "font-semibold text-foreground" : "text-muted-foreground")}>{s.rank}</span>
-                <span className="min-w-0 flex-1">
-                  <span className={cn("block truncate", isMe ? "font-semibold" : "font-medium")}>
-                    {s.name}
-                    {isMe ? <span className="ms-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">أنت</span> : null}
-                  </span>
-                  <span className="block text-sm text-muted-foreground">{s.studentClass}</span>
-                </span>
-                <span className={cn("num text-lg font-semibold", s.totalPoints < 0 ? "text-destructive" : "text-foreground")}>{s.totalPoints}</span>
-              </ListItem>
-            )
-          })}
-        </List>
-      </section>
-
-      {me ? (
-        <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>سجل نقاطي</DialogTitle>
-            </DialogHeader>
-            <TransactionHistoryList studentId={me.id} />
-          </DialogContent>
-        </Dialog>
-      ) : null}
+      <h3 className="text-2xl font-bold text-primary flex items-center gap-2 mt-8">
+        <Award className="h-6 w-6" /> لوحة الشرف (جميع الفصول)
+      </h3>
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px] text-center">الترتيب</TableHead>
+              <TableHead>الاسم</TableHead>
+              <TableHead>الفصل</TableHead>
+              <TableHead className="text-left">النقاط</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rankedStudents.map((s) => {
+              const isMe = s.id === currentStudentId;
+              return (
+                <TableRow key={s.id} className={isMe ? "bg-primary/20 font-bold" : ""}>
+                  <TableCell className="text-center">
+                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${s.rank <= 3 ? 'bg-amber-100 text-amber-700 font-bold text-lg' : 'bg-muted text-muted-foreground'}`}>
+                      {s.rank}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {s.name} 
+                    {isMe && <span className="inline-block mr-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">أنت</span>}
+                  </TableCell>
+                  <TableCell>{s.studentClass}</TableCell>
+                  <TableCell 
+                    className={`text-left text-lg font-black rounded transition-colors ${isMe ? 'cursor-pointer hover:bg-amber-100/50' : 'cursor-not-allowed opacity-90'} ${s.totalPoints < 0 ? 'text-destructive' : 'text-amber-500'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isMe) {
+                        setHistoryStudent(s as any);
+                        setIsHistoryOpen(true);
+                      } else {
+                        toast({ variant: "destructive", title: "مرفوض", description: "غير مصرح لك برؤية سجل هذا الطالب." });
+                      }
+                    }}
+                    title={isMe ? "اضغط هنا لرؤية سجل نقاطك" : "غير مصرح"}
+                  >
+                    <span className={isMe ? `border-b-2 border-dashed pb-0.5 ${s.totalPoints < 0 ? 'border-destructive/50' : 'border-amber-500/50'}` : ""} dir="ltr">
+                      {s.totalPoints}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
-  )
+  );
 }

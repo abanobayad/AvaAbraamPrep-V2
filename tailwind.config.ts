@@ -1,7 +1,5 @@
 import type { Config } from "tailwindcss"
 
-const token = (name: string) => `oklch(var(--${name}) / <alpha-value>)`
-
 const config = {
   darkMode: ["class"],
   content: [
@@ -14,78 +12,55 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: "1rem",
+      padding: "2rem",
       screens: {
-        "2xl": "1200px",
+        "2xl": "1400px",
       },
     },
     extend: {
-      fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-      },
       colors: {
-        border: token("border"),
-        input: token("input"),
-        ring: token("ring"),
-        background: token("background"),
-        foreground: token("foreground"),
-        surface: token("surface"),
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: token("primary"),
-          foreground: token("primary-foreground"),
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: token("secondary"),
-          foreground: token("secondary-foreground"),
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         success: {
-          DEFAULT: token("success"),
-          foreground: token("success-foreground"),
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
         },
         destructive: {
-          DEFAULT: token("destructive"),
-          foreground: token("destructive-foreground"),
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: token("muted"),
-          foreground: token("muted-foreground"),
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: token("accent"),
-          foreground: token("accent-foreground"),
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
-          DEFAULT: token("popover"),
-          foreground: token("popover-foreground"),
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          DEFAULT: token("card"),
-          foreground: token("card-foreground"),
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
       },
       borderRadius: {
-        "2xl": "calc(var(--radius) + 8px)",
-        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 4px)",
-        sm: "calc(var(--radius) - 6px)",
-      },
-      transitionTimingFunction: {
-        "out-quart": "cubic-bezier(0.25, 1, 0.5, 1)",
-      },
-      keyframes: {
-        "sheet-up": {
-          from: { transform: "translateY(100%)" },
-          to: { transform: "translateY(0)" },
-        },
-        "sheet-down": {
-          from: { transform: "translateY(0)" },
-          to: { transform: "translateY(100%)" },
-        },
-      },
-      animation: {
-        "sheet-up": "sheet-up 240ms cubic-bezier(0.25, 1, 0.5, 1)",
-        "sheet-down": "sheet-down 180ms cubic-bezier(0.25, 1, 0.5, 1)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
     },
   },
