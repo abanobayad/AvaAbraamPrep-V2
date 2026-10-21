@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { awardPoints } from "@/app/actions/db";
 import { Loader2 } from "lucide-react";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
-import { Podium } from "./Podium";
+import { Podium, rankWithTies, MEDAL_EMOJI } from "./Podium";
 import { SERVER_UNREACHABLE } from "@/lib/messages";
 
 const SPIRITUAL_BUTTONS = [
@@ -62,6 +62,7 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
     if (ptsB !== ptsA) return ptsB - ptsA;
     return a.name.localeCompare(b.name, 'ar');
   });
+  const rankedStudents = rankWithTies(sortedStudents);
 
   const handleAward = async (studentId: string, points: number, reason: string) => {
     setLoading(true);
@@ -225,16 +226,16 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedStudents.map((s, index) => (
-              <TableRow 
-                key={s.id} 
+            {rankedStudents.map((s) => (
+              <TableRow
+                key={s.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => {
                   setSelectedStudent(s);
                   setIsAwardDialogOpen(true);
                 }}
               >
-                <TableCell className="text-center font-bold text-muted-foreground">{index + 1}</TableCell>
+                <TableCell className={`text-center font-bold text-muted-foreground ${s.rank <= 3 ? "text-xl leading-none" : ""}`}>{MEDAL_EMOJI[s.rank] ?? s.rank}</TableCell>
                 <TableCell className="font-bold text-primary">{s.name}</TableCell>
                 <TableCell>{s.studentClass}</TableCell>
                 <TableCell 

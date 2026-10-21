@@ -86,33 +86,50 @@ model LoginAttempt {
   lockedUntil DateTime?
 }
 
-/// A meeting or activity (mass, Sunday school, hymns, a league...) that awards points to attendees.
+/// A recurring meeting or activity (mass, Sunday school, hymns...). Weekly: one day and
+/// time. Daily: a per-day schedule (JSON text). Each date it is held gets a MeetingSession.
 model Meeting {
-  id           String              @id @default(cuid())
+  id           String           @id @default(cuid())
   title        String
-  category     String              // key from src/config/meetings.ts
-  points       Int                 // points awarded to each attendee
-  date         DateTime
-  studentClass String?             // null = all classes
-  notes        String?             @db.Text
+  category     String           // key from src/config/meetings.ts
+  points       Int              // points each present student earns per session (0 = none)
+  frequency    String           @default("weekly") // 'weekly' | 'daily'
+  day          String?          // weekly: English weekday name (Saturday..Friday); daily: first held day
+  startTime    String?          // "HH:MM"
+  endTime      String?          // "HH:MM", optional
+  schedule     String?          @db.Text // daily: {"Sunday":{"begin":"07:00","end":"09:00"},...}
+  studentClass String?          // null = all classes
+  notes        String?          @db.Text
   createdBy    String
-  createdAt    DateTime            @default(now())
-  attendances  MeetingAttendance[]
+  createdAt    DateTime         @default(now())
+  sessions     MeetingSession[]
+}
 
+/// One attendance sheet of a meeting on a given date.
+model MeetingSession {
+  id          String              @id @default(cuid())
+  meetingId   String
+  meeting     Meeting             @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  date        DateTime            @db.Date
+  createdBy   String
+  createdAt   DateTime            @default(now())
+  attendances MeetingAttendance[]
+
+  @@unique([meetingId, date])
   @@index([date])
 }
 
-/// One student marked present at a meeting; transactionId links the points it awarded.
+/// One student marked present on a session; transactionId links the points it awarded.
 model MeetingAttendance {
-  id            String   @id @default(cuid())
-  meetingId     String
-  meeting       Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  id            String         @id @default(cuid())
+  sessionId     String
+  session       MeetingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   studentId     String
-  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  transactionId String?  @unique
+  student       Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  transactionId String?        @unique
   recordedBy    String
-  createdAt     DateTime @default(now())
+  createdAt     DateTime       @default(now())
 
-  @@unique([meetingId, studentId])
+  @@unique([sessionId, studentId])
   @@index([studentId])
 }

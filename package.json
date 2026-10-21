@@ -1,6 +1,6 @@
 {
   "name": "student-attendance-system",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "engines": {
     "node": ">=20"
@@ -12,7 +12,8 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed-admin": "node scripts/ensure-admin.mjs"
+    "db:seed-admin": "node scripts/ensure-admin.mjs",
+    "prebuild": "node scripts/bundle-migrations.mjs"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",

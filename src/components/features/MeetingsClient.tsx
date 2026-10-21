@@ -1,76 +1,97 @@
 "use client"
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarCheck, Plus, Loader2, Trash2, Users, ChevronLeft } from "lucide-react";
+import { Plus, Loader2, Trash2, Pencil, Eye, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { SERVER_UNREACHABLE } from "@/lib/messages";
-import { CLASSES } from "@/config/classes";
-import { MEETING_TYPES, meetingTypeLabel } from "@/config/meetings";
-import { createMeeting, deleteMeeting } from "@/app/actions/meetings";
+import { cn } from "@/lib/utils";
+import { DAY_LABELS, meetingTypeLabel, isDaily, slots, formatTime, formatDateAr, type DayName } from "@/config/meetings";
+import { createMeeting, updateMeeting, deleteMeeting, type MeetingInput } from "@/app/actions/meetings";
+import { MeetingForm } from "./MeetingForm";
 
 export type MeetingRow = {
   id: string;
   title: string;
   category: string;
   points: number;
-  date: string;
+  frequency: string;
+  day: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  schedule: string | null;
   studentClass: string | null;
   notes: string | null;
   createdBy: string;
-  _count: { attendances: number };
+  createdAt: string;
+  lastSession: string | null;
+  _count: { sessions: number };
 };
 
-const ALL = "الكل";
+export function Badge({ tone = "slate", className, children }: { tone?: "slate" | "accent" | "success" | "amber" | "danger"; className?: string; children: React.ReactNode }) {
+  const tones = {
+    slate: "bg-muted text-muted-foreground",
+    accent: "bg-emerald-100 text-emerald-800",
+    success: "bg-emerald-100 text-emerald-800",
+    amber: "bg-amber-100 text-amber-800",
+    danger: "bg-rose-100 text-rose-800",
+  };
+  return <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold", tones[tone], className)}>{children}</span>;
+}
 
-function today() {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+/** Day badge of a meeting: "⛪ يومي" for a daily one, the weekday otherwise. */
+export function DayBadge({ meeting }: { meeting: MeetingRow }) {
+  return isDaily(meeting) ? <Badge tone="accent">⛪ يومي</Badge> : <Badge>{meeting.day ? DAY_LABELS[meeting.day as DayName] : "—"}</Badge>;
 }
 
 export function MeetingsClient({ initialMeetings }: { initialMeetings: MeetingRow[] }) {
   const [meetings, setMeetings] = useState<MeetingRow[]>(initialMeetings);
   useEffect(() => setMeetings(initialMeetings), [initialMeetings]);
 
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ category: "MASS", title: "حضور قداس", points: 100, date: today(), studentClass: ALL, notes: "" });
+  const [query, setQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<MeetingRow | null>(null);
   const [toDelete, setToDelete] = useState<MeetingRow | null>(null);
+  const [busy, setBusy] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  const pickType = (key: string) => {
-    const t = MEETING_TYPES.find((x) => x.key === key);
-    if (!t) return;
-    setForm((f) => ({ ...f, category: key, title: key === "OTHER" ? "" : t.label, points: t.points }));
-  };
+  const visible = useMemo(() => {
+    const q = query.trim();
+    return q ? meetings.filter((m) => m.title.includes(q) || meetingTypeLabel(m.category).includes(q)) : meetings;
+  }, [meetings, query]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const create = async (input: MeetingInput) => {
     setBusy(true);
     try {
-      const res = await createMeeting({
-        title: form.title,
-        category: form.category,
-        points: Number(form.points),
-        date: form.date,
-        studentClass: form.studentClass === ALL ? null : form.studentClass,
-        notes: form.notes,
-      });
+      const res = await createMeeting(input);
       if (!res?.success) throw new Error(res?.error || SERVER_UNREACHABLE);
-      setMeetings((prev) => [res.data, ...prev]);
-      router.refresh();
-      setOpen(false);
-      toast({ title: "تم إنشاء الاجتماع", description: "افتحه الآن لتسجيل الحضور", className: "bg-success text-white" });
+      setMeetings((prev) => [...prev, res.data]);
+      setCreateOpen(false);
+      toast({ title: "تم إنشاء الاجتماع", description: "ابدأ الحضور من صفحة الاجتماع", className: "bg-success text-white" });
       router.push(`/meetings/${res.data.id}`);
+      router.refresh();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "خطأ", description: err.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const update = async (input: MeetingInput) => {
+    if (!editing) return;
+    setBusy(true);
+    try {
+      const res = await updateMeeting(editing.id, input);
+      if (!res?.success) throw new Error(res?.error || SERVER_UNREACHABLE);
+      setMeetings((prev) => prev.map((m) => (m.id === editing.id ? res.data : m)));
+      setEditing(null);
+      router.refresh();
+      toast({ title: "تم تحديث الاجتماع", className: "bg-success text-white" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });
     } finally {
@@ -86,7 +107,7 @@ export function MeetingsClient({ initialMeetings }: { initialMeetings: MeetingRo
       if (!res?.success) throw new Error(res?.error || SERVER_UNREACHABLE);
       setMeetings((prev) => prev.filter((m) => m.id !== toDelete.id));
       router.refresh();
-      toast({ title: "تم الحذف", description: "تم حذف الاجتماع واسترجاع نقاطه" });
+      toast({ title: "تم حذف الاجتماع", description: res.data?.reversed ? `تم استرجاع النقاط من ${res.data.reversed} تسجيل حضور.` : undefined });
       setToDelete(null);
     } catch (err: any) {
       toast({ variant: "destructive", title: "خطأ", description: err.message });
@@ -97,81 +118,48 @@ export function MeetingsClient({ initialMeetings }: { initialMeetings: MeetingRo
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 ml-2" />
-              اجتماع جديد
-            </Button>
-          </DialogTrigger>
-          <DialogContent dir="rtl">
-            <DialogHeader>
-              <DialogTitle>اجتماع جديد</DialogTitle>
-              <DialogDescription>اختر النوع وسيتم ضبط النقاط تلقائيًا، ويمكنك تعديلها.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={submit} className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <Label>النوع</Label>
-                <Select value={form.category} onValueChange={pickType} disabled={busy}>
-                  <SelectTrigger dir="rtl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MEETING_TYPES.map((t) => (
-                      <SelectItem key={t.key} value={t.key}>{t.label} (+{t.points})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>اسم الاجتماع</Label>
-                <Input required maxLength={100} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="مثال: قداس الجمعة" disabled={busy} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>النقاط لكل حاضر</Label>
-                  <Input type="number" dir="ltr" min={1} max={200} required value={form.points} onChange={(e) => setForm({ ...form, points: Number(e.target.value) })} disabled={busy} />
-                </div>
-                <div className="space-y-2">
-                  <Label>التاريخ</Label>
-                  <Input type="date" dir="ltr" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} disabled={busy} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>المرحلة</Label>
-                <Select value={form.studentClass} onValueChange={(v) => setForm({ ...form, studentClass: v })} disabled={busy}>
-                  <SelectTrigger dir="rtl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>كل المراحل</SelectItem>
-                    {CLASSES.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>ملاحظات (اختياري)</Label>
-                <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} disabled={busy} />
-              </div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <CalendarCheck className="h-4 w-4 ml-2" />}
-                إنشاء وتسجيل الحضور
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative sm:w-72">
+          <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث" aria-label="بحث" className="pr-9" />
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="ml-2 h-4 w-4" />
+          إضافة اجتماع
+        </Button>
       </div>
+
+      <Dialog open={createOpen} onOpenChange={(o) => !busy && setCreateOpen(o)}>
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>إضافة اجتماع</DialogTitle>
+            <DialogDescription>اختر النوع وسيتم ضبط العنوان والنقاط تلقائيًا، ويمكنك تعديلها.</DialogDescription>
+          </DialogHeader>
+          <MeetingForm busy={busy} submitLabel="إنشاء" onSubmit={create} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !busy && !o && setEditing(null)}>
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>تعديل اجتماع</DialogTitle>
+            <DialogDescription>تغيير النقاط يسري على الجلسات القادمة فقط.</DialogDescription>
+          </DialogHeader>
+          {editing && <MeetingForm key={editing.id} initial={editing} busy={busy} submitLabel="حفظ" onSubmit={update} />}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!toDelete} onOpenChange={(o) => !busy && !o && setToDelete(null)}>
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>حذف الاجتماع</DialogTitle>
             <DialogDescription>
-              سيتم حذف {toDelete?.title} واسترجاع النقاط من كل من حضره ({toDelete?._count.attendances} مخدوم).
+              حذف «{toDelete?.title}» وكل جلسات الحضور الخاصة به ({toDelete?._count.sessions} جلسة)؟ سيتم استرجاع النقاط التي منحها.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row gap-2 sm:justify-start">
             <Button variant="destructive" onClick={confirmDelete} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Trash2 className="h-4 w-4 ml-2" />}
+              {busy ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Trash2 className="ml-2 h-4 w-4" />}
               حذف
             </Button>
             <Button variant="outline" onClick={() => setToDelete(null)} disabled={busy}>إلغاء</Button>
@@ -179,57 +167,86 @@ export function MeetingsClient({ initialMeetings }: { initialMeetings: MeetingRo
         </DialogContent>
       </Dialog>
 
-      {meetings.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-card">
-          لا توجد اجتماعات بعد. أنشئ أول اجتماع لتسجيل الحضور.
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <h2 className="font-bold">كل الاجتماعات <span className="font-normal text-muted-foreground">· {meetings.length}</span></h2>
         </div>
-      ) : (
-        <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الاجتماع</TableHead>
-                <TableHead className="w-32">التاريخ</TableHead>
-                <TableHead className="w-32">المرحلة</TableHead>
-                <TableHead className="w-24 text-center">النقاط</TableHead>
-                <TableHead className="w-24 text-center">الحضور</TableHead>
-                <TableHead className="w-24"></TableHead>
+                <TableHead className="w-12 text-center">#</TableHead>
+                <TableHead>العنوان</TableHead>
+                <TableHead>اليوم</TableHead>
+                <TableHead>البداية</TableHead>
+                <TableHead>النهاية</TableHead>
+                <TableHead className="text-center">نقاط الحضور</TableHead>
+                <TableHead className="text-center">الجلسات</TableHead>
+                <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {meetings.map((m) => (
-                <TableRow key={m.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <Link href={`/meetings/${m.id}`} className="font-bold text-primary hover:underline">
-                      {m.title}
-                    </Link>
-                    <div className="text-xs text-muted-foreground">{meetingTypeLabel(m.category)}</div>
-                  </TableCell>
-                  <TableCell dir="ltr" className="text-right">{new Date(m.date).toLocaleDateString("ar-EG")}</TableCell>
-                  <TableCell>{m.studentClass ?? "كل المراحل"}</TableCell>
-                  <TableCell className="text-center font-bold text-success" dir="ltr">+{m.points}</TableCell>
-                  <TableCell className="text-center">
-                    <span className="inline-flex items-center gap-1"><Users className="h-4 w-4 text-muted-foreground" />{m._count.attendances}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/meetings/${m.id}`}>
-                          الحضور
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setToDelete(m)} aria-label="حذف">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {visible.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                    {meetings.length === 0 ? "لا توجد اجتماعات بعد. أضف اجتماعًا لبدء تسجيل الحضور." : "لا نتائج"}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                visible.map((m, i) => {
+                  const held = slots(m);
+                  const daily = isDaily(m);
+                  return (
+                    <TableRow key={m.id} className="hover:bg-muted/50">
+                      <TableCell className="text-center text-muted-foreground">{i + 1}</TableCell>
+                      <TableCell>
+                        <Link href={`/meetings/${m.id}`} className="font-bold text-primary hover:underline">{m.title}</Link>
+                        <div className="text-xs text-muted-foreground">
+                          {meetingTypeLabel(m.category)} · {m.studentClass ?? "كل المراحل"}
+                        </div>
+                      </TableCell>
+                      <TableCell><DayBadge meeting={m} /></TableCell>
+                      {daily ? (
+                        <TableCell colSpan={2} className="text-xs text-muted-foreground">
+                          {(Object.keys(held) as DayName[]).map((d, idx, arr) => (
+                            <span key={d} className="whitespace-nowrap">
+                              {DAY_LABELS[d]} <span className="tabular-nums">{formatTime(held[d]!.begin)}</span>
+                              {idx < arr.length - 1 && " · "}
+                            </span>
+                          ))}
+                        </TableCell>
+                      ) : (
+                        <>
+                          <TableCell className="tabular-nums">{formatTime(m.startTime)}</TableCell>
+                          <TableCell className="tabular-nums">{formatTime(m.endTime) || "—"}</TableCell>
+                        </>
+                      )}
+                      <TableCell className="text-center">
+                        <Badge tone={m.points > 0 ? "accent" : "slate"}><span dir="ltr">+{m.points}</span></Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="font-bold">{m._count.sessions}</span>
+                        {m.lastSession && <div className="text-[11px] text-muted-foreground">آخرها {formatDateAr(m.lastSession, { day: "numeric", month: "short" })}</div>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/meetings/${m.id}`}><Eye className="ml-1 h-4 w-4" />عرض</Link>
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setEditing(m)}><Pencil className="ml-1 h-4 w-4" />تعديل</Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setToDelete(m)}>
+                            <Trash2 className="ml-1 h-4 w-4" />حذف
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
-      )}
+      </div>
     </div>
   );
 }

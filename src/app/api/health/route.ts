@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { APP_VERSION } from "@/lib/version";
+import { bootstrapDatabase, getBootstrapStatus } from "@/lib/bootstrap";
 
 export const dynamic = "force-dynamic";
 
-/** Liveness and database check for monitoring and deploy verification. No auth, no secrets. */
+/**
+ * Liveness, database and migration check for monitoring and deploy verification.
+ * Also runs the startup bootstrap if it has not run in this process yet (idempotent).
+ */
 export async function GET() {
+  try {
+    await bootstrapDatabase();
+  } catch {}
+
   let db: "ok" | "error" = "error";
   let tables = 0;
   try {
@@ -16,7 +24,7 @@ export async function GET() {
     db = "error";
   }
   return NextResponse.json(
-    { ok: db === "ok", db, tables, version: APP_VERSION, time: new Date().toISOString() },
+    { ok: db === "ok", db, tables, version: APP_VERSION, bootstrap: getBootstrapStatus(), time: new Date().toISOString() },
     { status: db === "ok" ? 200 : 503, headers: { "cache-control": "no-store" } }
   );
 }

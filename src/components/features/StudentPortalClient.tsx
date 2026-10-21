@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
-import { Podium } from "./Podium";
+import { Podium, MEDAL_EMOJI } from "./Podium";
 import { useToast } from "@/components/ui/use-toast";
 
 export function StudentPortalClient({ students, currentStudentId }: { students: Student[], currentStudentId: string | undefined }) {
@@ -66,8 +66,8 @@ export function StudentPortalClient({ students, currentStudentId }: { students: 
               return (
                 <TableRow key={s.id} className={isMe ? "bg-primary/20 font-bold" : ""}>
                   <TableCell className="text-center">
-                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${s.rank <= 3 ? 'bg-amber-100 text-amber-700 font-bold text-lg' : 'bg-muted text-muted-foreground'}`}>
-                      {s.rank}
+                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${s.rank <= 3 ? 'bg-amber-100 text-amber-700 font-bold text-xl leading-none' : 'bg-muted text-muted-foreground'}`}>
+                      {MEDAL_EMOJI[s.rank] ?? s.rank}
                     </div>
                   </TableCell>
                   <TableCell>
