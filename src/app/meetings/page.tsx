@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BarChart3 } from "lucide-react";
 import { getSession } from "@/lib/authz";
 import { getMeetings } from "@/app/actions/meetings";
 import { Button } from "@/components/ui/button";
@@ -22,12 +22,20 @@ export default async function MeetingsPage() {
           <h1 className="text-3xl font-bold text-primary">الاجتماعات والحضور</h1>
           <p className="text-muted-foreground mt-1">سجّل الحضور وتُضاف النقاط تلقائيًا لكل حاضر</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={backHref}>
-            <ArrowRight className="h-4 w-4 ml-2" />
-            العودة للرئيسية
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/attendance-stats">
+              <BarChart3 className="h-4 w-4 ml-2" />
+              إحصائيات الحضور
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={backHref}>
+              <ArrowRight className="h-4 w-4 ml-2" />
+              العودة للرئيسية
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {res?.success ? null : (

@@ -3,11 +3,12 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/services/auth";
 import { handleLogout } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, UserPlus, Users, Shield, Trophy, Award, PlaySquare, CalendarCheck, HeartHandshake } from "lucide-react";
+import { LogOut, UserPlus, Users, Shield, Trophy, Award, PlaySquare, CalendarCheck, HeartHandshake, BarChart3 } from "lucide-react";
 import { EFTEQAD_ENABLED } from "@/lib/features";
 import Link from "next/link";
 import { ChangeOwnPasswordDialog } from "@/components/features/ChangeOwnPasswordDialog";
 import { ClassCountsChart, countByClass } from "@/components/features/ClassCountsChart";
+import { AttendanceMonthCard } from "@/components/features/AttendanceMonthCard";
 import { getStudents } from "@/app/actions/db";
 
 export default async function SuperadminDashboard() {
@@ -60,6 +61,11 @@ export default async function SuperadminDashboard() {
           <span className="font-bold text-lg text-center leading-tight">الاجتماعات<br/>والحضور</span>
         </Link>
 
+        <Link href="/attendance-stats" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-indigo-600 group">
+          <BarChart3 className="h-12 w-12 mb-3 group-hover:animate-bounce" />
+          <span className="font-bold text-lg text-center leading-tight">إحصائيات<br/>الحضور</span>
+        </Link>
+
         <Link href="/media" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-red-500 group">
           <PlaySquare className="h-12 w-12 mb-3 group-hover:animate-bounce" />
           <span className="font-bold text-lg text-center leading-tight">الميديا</span>
@@ -73,8 +79,9 @@ export default async function SuperadminDashboard() {
         </Link>)}
       </div>
 
-      <section className="w-full max-w-2xl mx-auto">
+      <section className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <ClassCountsChart counts={counts} />
+        <AttendanceMonthCard />
       </section>
     </div>
   );

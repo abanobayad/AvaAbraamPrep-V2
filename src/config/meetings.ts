@@ -137,6 +137,12 @@ export function formatDateAr(
   return new Date(y, mo - 1, d).toLocaleDateString("ar-EG", opts);
 }
 
+/** "2026-10" becomes "أكتوبر ٢٠٢٦". */
+export function monthLabel(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+}
+
 /** Arabic plural of "نقطة" for a count. */
 export function pointsWord(n: number): string {
   const a = Math.abs(n);
