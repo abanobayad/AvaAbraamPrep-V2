@@ -89,3 +89,27 @@
   background-size: 24px 24px;
 }
 
+
+/* Printing: plain white pages, no app chrome, cards never split across pages. */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  html, body, .bg-pattern {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .bg-pattern {
+    background-image: none !important;
+    min-height: 0 !important;
+  }
+  main {
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .code-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

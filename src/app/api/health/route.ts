@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { APP_VERSION } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET() {
     db = "error";
   }
   return NextResponse.json(
-    { ok: db === "ok", db, tables, version: process.env.npm_package_version ?? null, time: new Date().toISOString() },
+    { ok: db === "ok", db, tables, version: APP_VERSION, time: new Date().toISOString() },
     { status: db === "ok" ? 200 : 503, headers: { "cache-control": "no-store" } }
   );
 }

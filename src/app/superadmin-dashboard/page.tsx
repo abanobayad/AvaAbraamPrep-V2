@@ -7,10 +7,14 @@ import { LogOut, UserPlus, Users, Shield, Trophy, Award, PlaySquare, CalendarChe
 import { EFTEQAD_ENABLED } from "@/lib/features";
 import Link from "next/link";
 import { ChangeOwnPasswordDialog } from "@/components/features/ChangeOwnPasswordDialog";
+import { ClassCountsChart, countByClass } from "@/components/features/ClassCountsChart";
+import { getStudents } from "@/app/actions/db";
 
 export default async function SuperadminDashboard() {
   const token = cookies().get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
+  const studentsRes = await getStudents();
+  const counts = countByClass(studentsRes?.success ? studentsRes.data : []);
 
   return (
     <div className="max-w-7xl mx-auto space-y-12">
@@ -63,6 +67,10 @@ export default async function SuperadminDashboard() {
           <span className="font-bold text-lg text-center leading-tight">كشف الافتقاد</span>
         </Link>)}
       </div>
+
+      <section className="w-full max-w-2xl mx-auto">
+        <ClassCountsChart counts={counts} />
+      </section>
     </div>
   );
 }

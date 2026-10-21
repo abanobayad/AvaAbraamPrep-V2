@@ -13,18 +13,18 @@ import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
 import { SERVER_UNREACHABLE } from "@/lib/messages";
 
 const SPIRITUAL_BUTTONS = [
-  { label: "حضور قداس", value: 25, variant: "outline" },
-  { label: "تسبحة وعشية", value: 20, variant: "outline" },
-  { label: "طقس ألحان", value: 15, variant: "outline" },
-  { label: "مدارس الأحد", value: 15, variant: "outline" },
-  { label: "درس كتاب مقدس", value: 15, variant: "outline" },
+  { label: "حضور قداس", value: 100, variant: "outline" },
+  { label: "مدارس الأحد", value: 75, variant: "outline" },
+  { label: "تسبحة وعشية", value: 75, variant: "outline" },
+  { label: "درس الألحان", value: 50, variant: "outline" },
+  { label: "درس الكتاب", value: 50, variant: "outline" },
 ];
 
 const SPORT_BUTTONS = [
-  { label: "دوري كورة", value: 10, variant: "outline" },
-  { label: "دوري شطرنج", value: 15, variant: "outline" },
-  { label: "دوري بلايستيشن", value: 15, variant: "outline" },
-  { label: "دوري بينج بونج", value: 15, variant: "outline" },
+  { label: "دوري كورة", value: 50, variant: "outline" },
+  { label: "دوري شطرنج", value: 50, variant: "outline" },
+  { label: "دوري بلايستيشن", value: 50, variant: "outline" },
+  { label: "دوري بينج بونج", value: 50, variant: "outline" },
 ];
 
 const PENALTY_BUTTONS = [
