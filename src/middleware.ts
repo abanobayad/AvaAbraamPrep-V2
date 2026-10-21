@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
         if (role !== 'superadmin') return NextResponse.redirect(new URL('/', request.url))
       }
 
-      if (path.startsWith('/admin-dashboard') || path.startsWith('/add-student') || path.startsWith('/students-list') || path.startsWith('/points-leaderboard')) {
+      if (path.startsWith('/admin-dashboard') || path.startsWith('/add-student') || path.startsWith('/students-list') || path.startsWith('/points-leaderboard') || path.startsWith('/meetings') || path.startsWith('/print-codes')) {
         if (role === 'student') return NextResponse.redirect(new URL('/student-portal', request.url))
       }
 

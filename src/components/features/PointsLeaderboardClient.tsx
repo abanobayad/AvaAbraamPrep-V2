@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { awardPoints } from "@/app/actions/db";
 import { Loader2 } from "lucide-react";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
+import { Podium } from "./Podium";
 import { SERVER_UNREACHABLE } from "@/lib/messages";
 
 const SPIRITUAL_BUTTONS = [
@@ -210,6 +211,8 @@ export function PointsLeaderboardClient({ initialStudents }: { initialStudents: 
           </div>
         </DialogContent>
       </Dialog>
+
+      <Podium entries={sortedStudents} />
 
       <div className="bg-card rounded-lg border shadow-sm">
         <Table>

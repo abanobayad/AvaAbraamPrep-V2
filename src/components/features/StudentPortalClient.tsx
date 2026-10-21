@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TransactionHistoryDialog } from "./TransactionHistoryDialog";
+import { Podium } from "./Podium";
 import { useToast } from "@/components/ui/use-toast";
 
 export function StudentPortalClient({ students, currentStudentId }: { students: Student[], currentStudentId: string | undefined }) {
@@ -43,6 +44,8 @@ export function StudentPortalClient({ students, currentStudentId }: { students: 
           <p className="text-3xl mt-2">{myStudent.totalPoints} نقطة</p>
         </div>
       )}
+
+      <Podium entries={rankedStudents} highlightId={currentStudentId} />
 
       <h3 className="text-2xl font-bold text-primary flex items-center gap-2 mt-8">
         <Award className="h-6 w-6" /> لوحة الشرف (جميع الفصول)

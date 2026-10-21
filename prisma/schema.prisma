@@ -33,6 +33,7 @@ model Student {
   transactions Transaction[]
   attendances  Attendance[]
   efteqadLogs  EfteqadLog[]
+  meetingAttendances MeetingAttendance[]
 }
 
 model Transaction {
@@ -83,4 +84,35 @@ model LoginAttempt {
   count       Int       @default(1)
   windowStart DateTime  @default(now())
   lockedUntil DateTime?
+}
+
+/// A meeting or activity (mass, Sunday school, hymns, a league...) that awards points to attendees.
+model Meeting {
+  id           String              @id @default(cuid())
+  title        String
+  category     String              // key from src/config/meetings.ts
+  points       Int                 // points awarded to each attendee
+  date         DateTime
+  studentClass String?             // null = all classes
+  notes        String?             @db.Text
+  createdBy    String
+  createdAt    DateTime            @default(now())
+  attendances  MeetingAttendance[]
+
+  @@index([date])
+}
+
+/// One student marked present at a meeting; transactionId links the points it awarded.
+model MeetingAttendance {
+  id            String   @id @default(cuid())
+  meetingId     String
+  meeting       Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  transactionId String?  @unique
+  recordedBy    String
+  createdAt     DateTime @default(now())
+
+  @@unique([meetingId, studentId])
+  @@index([studentId])
 }

@@ -50,6 +50,11 @@ export default async function AdminDashboard() {
           <span className="font-bold text-lg text-center leading-tight">لوحة الشرف</span>
         </Link>
 
+        <Link href="/meetings" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-emerald-600 group">
+          <CalendarCheck className="h-12 w-12 mb-3 group-hover:animate-bounce" />
+          <span className="font-bold text-lg text-center leading-tight">الاجتماعات<br/>والحضور</span>
+        </Link>
+
         <Link href="/media" className="w-40 h-40 rounded-full flex flex-col items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-pointer bg-red-500 group">
           <PlaySquare className="h-12 w-12 mb-3 group-hover:animate-bounce" />
           <span className="font-bold text-lg text-center leading-tight">الميديا</span>
