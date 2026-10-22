@@ -9,7 +9,7 @@ import { getKhodam } from "@/app/actions/db";
 import { ManageKhodamClient } from "@/components/features/ManageKhodamClient";
 
 export default async function ManageKhodamPage() {
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
   
   if (session?.role !== "superadmin") {

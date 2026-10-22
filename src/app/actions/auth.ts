@@ -10,13 +10,13 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 // The reverse proxy in front of the app appends the real client address as the
 // LAST X-Forwarded-For entry; earlier entries can be forged by the client.
-function clientIp() {
-  const forwarded = headers().get("x-forwarded-for");
+async function clientIp() {
+  const forwarded = (await headers()).get("x-forwarded-for");
   if (forwarded) {
     const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
     if (parts.length) return parts[parts.length - 1];
   }
-  return headers().get("x-real-ip") || "unknown";
+  return (await headers()).get("x-real-ip") || "unknown";
 }
 
 // Rate limiting is best effort: if the database is unavailable, log the problem
@@ -89,7 +89,7 @@ async function resetRateLimit(keys: string[]) {
 export async function handleLogin(formData: FormData) {
   const username = (formData.get("username") as string | null)?.trim() ?? "";
   const password = (formData.get("password") as string | null) ?? "";
-  const ip = clientIp();
+  const ip = await clientIp();
 
   const rlKeys = [`staff:ip:${ip}`, `staff:user:${username}`];
   const rlCheck = await checkRateLimit(rlKeys);
@@ -132,9 +132,9 @@ export async function handleLogin(formData: FormData) {
     username: user.username,
     role: user.role as any,
     type: "staff",
-  })
+  });
 
-  cookies().set("auth_token", token, {
+  (await cookies()).set("auth_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -152,13 +152,13 @@ export async function handleLogin(formData: FormData) {
 }
 
 export async function handleLogout() {
-  cookies().delete("auth_token")
+  (await cookies()).delete("auth_token")
   redirect("/")
 }
 
 export async function loginStudent(formData: FormData) {
   const code = (formData.get('code') as string | null)?.trim() ?? "";
-  const ip = clientIp();
+  const ip = await clientIp();
 
   // Per-IP lockout, plus a global slowdown so code guessing cannot be spread across addresses.
   const rlKeys = [`student:ip:${ip}`];
@@ -189,7 +189,7 @@ export async function loginStudent(formData: FormData) {
     type: "student",
   });
 
-  cookies().set('auth_token', token, {
+  (await cookies()).set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -202,7 +202,7 @@ export async function loginStudent(formData: FormData) {
 
 export async function resetKhademPassword(userId: string, newPass: string) {
   try {
-    const token = cookies().get("auth_token")?.value;
+    const token = (await cookies()).get("auth_token")?.value;
     if (!token) return { success: false, error: "Unauthorized" };
     const session = await verifyToken(token);
     if (!session || session.role !== "superadmin") return { success: false, error: "Unauthorized" };
@@ -230,7 +230,7 @@ export async function resetKhademPassword(userId: string, newPass: string) {
 
 export async function changeOwnPassword(currentPass: string, newPass: string) {
   try {
-    const token = cookies().get("auth_token")?.value;
+    const token = (await cookies()).get("auth_token")?.value;
     if (!token) return { success: false, error: "Unauthorized" };
     const session = await verifyToken(token);
     if (!session) return { success: false, error: "Unauthorized" };

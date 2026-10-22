@@ -14,17 +14,18 @@ const ALL = "الكل";
 type Row = { id: string; name: string; studentCode: string | null; studentClass: string };
 
 /** Printable sheet of login-code cards, two columns per A4 page. Staff only. */
-export default async function PrintCodesPage({ searchParams }: { searchParams: { class?: string } }) {
+export default async function PrintCodesPage({ searchParams }: { searchParams: Promise<{ class?: string }> }) {
+  const sp = await searchParams;
   const session = await getSession();
   if (!session || session.role === "student") redirect("/");
 
-  const selected = searchParams.class && (CLASSES as readonly string[]).includes(searchParams.class) ? searchParams.class : ALL;
+  const selected = sp.class && (CLASSES as readonly string[]).includes(sp.class) ? sp.class : ALL;
   const res = await getStudents(selected);
   const students: Row[] = (res?.success ? res.data : [])
     .slice()
     .sort((a: Row, b: Row) => a.studentClass.localeCompare(b.studentClass, "ar") || a.name.localeCompare(b.name, "ar"));
 
-  const host = headers().get("host") ?? "";
+  const host = (await headers()).get("host") ?? "";
   const loginUrl = host.replace(/^www\./, "");
 
   return (

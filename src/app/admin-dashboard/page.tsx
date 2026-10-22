@@ -12,7 +12,7 @@ import { AttendanceMonthCard } from "@/components/features/AttendanceMonthCard";
 import { getStudents } from "@/app/actions/db";
 
 export default async function AdminDashboard() {
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
   const studentsRes = await getStudents();
   const counts = countByClass(studentsRes?.success ? studentsRes.data : []);

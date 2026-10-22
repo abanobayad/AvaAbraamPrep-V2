@@ -9,7 +9,7 @@ import { EFTEQAD_ENABLED } from "@/lib/features";
 
 export default async function EfteqadPage() {
   if (!EFTEQAD_ENABLED) redirect("/");
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
 
   if (!session || session.role === "student") {

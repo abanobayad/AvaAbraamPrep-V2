@@ -8,11 +8,12 @@ import { formatDateAr } from "@/config/meetings";
 import { Button } from "@/components/ui/button";
 import { AttendanceClient } from "@/components/features/AttendanceClient";
 
-export default async function AttendanceSheetPage({ params }: { params: { id: string } }) {
+export default async function AttendanceSheetPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await getAuthSession();
   if (!auth || auth.role === "student") redirect("/");
 
-  const res = await getAttendanceSession(params.id);
+  const res = await getAttendanceSession(id);
   if (!res?.success) {
     return (
       <div className="max-w-3xl mx-auto space-y-6 pt-6">

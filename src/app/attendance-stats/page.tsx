@@ -7,12 +7,13 @@ import { getAttendanceStats } from "@/app/actions/stats";
 import { Button } from "@/components/ui/button";
 import { AttendanceStatsClient } from "@/components/features/AttendanceStatsClient";
 
-export default async function AttendanceStatsPage({ searchParams }: { searchParams: { month?: string } }) {
+export default async function AttendanceStatsPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
+  const { month } = await searchParams;
   const session = await getSession();
   if (!session || session.role === "student") redirect("/");
   const backHref = session.role === "superadmin" ? "/superadmin-dashboard" : "/admin-dashboard";
 
-  const res = await getAttendanceStats(searchParams?.month ?? null);
+  const res = await getAttendanceStats(month ?? null);
   if (!res?.success) {
     return (
       <div className="max-w-3xl mx-auto space-y-6 pt-6">

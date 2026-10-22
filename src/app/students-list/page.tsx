@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/services/auth";
 
 export default async function StudentsListPage() {
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
   const role = session?.role || "student";
   const canManage = role === "superadmin" || role === "admin";

@@ -7,11 +7,12 @@ import { getMeeting } from "@/app/actions/meetings";
 import { Button } from "@/components/ui/button";
 import { MeetingShowClient } from "@/components/features/MeetingShowClient";
 
-export default async function MeetingPage({ params }: { params: { id: string } }) {
+export default async function MeetingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getSession();
   if (!session || session.role === "student") redirect("/");
 
-  const res = await getMeeting(params.id);
+  const res = await getMeeting(id);
   if (!res?.success) {
     return (
       <div className="max-w-3xl mx-auto space-y-6 pt-6">

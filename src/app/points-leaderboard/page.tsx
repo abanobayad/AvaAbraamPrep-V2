@@ -9,7 +9,7 @@ import { getLeaderboard } from "@/app/actions/db";
 import { PointsLeaderboardClient } from "@/components/features/PointsLeaderboardClient";
 
 export default async function PointsLeaderboardPage() {
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
   
   if (!session || session.role === "student") {

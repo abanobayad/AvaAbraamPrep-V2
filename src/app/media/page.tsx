@@ -9,7 +9,7 @@ import { getMedia } from "@/app/actions/db";
 import { MediaClient } from "@/components/features/MediaClient";
 
 export default async function MediaPage() {
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
   
   if (!session) {

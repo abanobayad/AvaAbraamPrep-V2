@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Enables src/instrumentation.ts, which applies database migrations and
-    // creates the first superadmin when the server starts.
-    instrumentationHook: true,
-  },
+  // src/instrumentation.ts (stable in Next 15) applies database migrations and
+  // creates the first superadmin when the server starts.
 };
 
 export default nextConfig;

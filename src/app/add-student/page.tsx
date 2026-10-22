@@ -8,7 +8,7 @@ import { verifyToken } from "@/services/auth";
 import { redirect } from "next/navigation";
 
 export default async function AddStudentPage() {
-  const token = cookies().get("auth_token")?.value;
+  const token = (await cookies()).get("auth_token")?.value;
   const session = token ? await verifyToken(token) : null;
   
   if (session?.role === "student") {
