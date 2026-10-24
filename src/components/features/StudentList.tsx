@@ -26,6 +26,18 @@ import {
 
 const ALL = "الكل";
 
+/** Loosens Arabic matching: hamza forms, taa marbuta / haa, alef maqsura / yaa, tatweel and diacritics. */
+function normalizeArabic(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[ً-ْـ]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function DetailRow({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string }>; label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
@@ -73,13 +85,21 @@ export function StudentList({ role = "student" }: { role?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Declared before the memo below, which reads it while filtering.
+  const canManage = role !== "student";
+
   // Search by name or login code, within the selected grade tab.
   const visible = useMemo(() => {
-    const q = query.trim();
+    const q = normalizeArabic(query);
+    const matches = (s: Student) => {
+      if (!q) return true;
+      if (normalizeArabic(s.name ?? "").includes(q)) return true;
+      return canManage && (s.studentCode ?? "").includes(q);
+    };
     return students
-      .filter(s => (classFilter === ALL || s.studentClass === classFilter) && (!q || s.name.includes(q) || (canManage && (s.studentCode ?? "").includes(q))))
-      .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [students, query, classFilter]);
+      .filter(s => (classFilter === ALL || s.studentClass === classFilter) && matches(s))
+      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "ar"));
+  }, [students, query, classFilter, canManage]);
 
   const confirmDelete = async () => {
     if (!deleteId) return;
@@ -100,8 +120,6 @@ export function StudentList({ role = "student" }: { role?: string }) {
       setDeleteId(null);
     }
   }
-
-  const canManage = role !== "student";
 
   return (
     <div className="space-y-4 mt-8">
